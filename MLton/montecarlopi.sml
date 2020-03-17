@@ -10,12 +10,14 @@ in
        whereas with it they range correctly from 0.0 to 1.0 *)
 end
 
-fun montecarlopi (iterations : int) (return_ivar : real SyncVar.ivar) () = let
-    val _ = MLton.Random.srand (valOf (MLton.Random.useed ()))
+fun montecarlopi (iterations : int) (return_ivar : real SyncVar.ivar) (randomizer: Random.rand) () = let
+    (* val _ = MLton.Random.srand (valOf (MLton.Random.useed ())) *)
     fun helper accumulator 0 = accumulator
       | helper accumulator iteration = let
-          val x : real = wordToBoundedReal (MLton.Random.rand ())
-          val y : real = wordToBoundedReal (MLton.Random.rand ())
+          (* val x : real = wordToBoundedReal (MLton.Random.rand ()) *)
+          (* val y : real = wordToBoundedReal (MLton.Random.rand ()) *)
+          val x: real = Random.randReal randomizer
+          val y: real = Random.randReal randomizer
           val in_target = (x * x) + (y * y)
           val next_iter = iteration - 1
       in
@@ -29,9 +31,12 @@ in
 end
 
 fun experiment (iterations : int) (num_threads : int) () : unit = let
+    val _ = MLton.Random.srand (valOf (MLton.Random.useed ()))
     val iters_per_thread : int = iterations div num_threads
     val return_ivars = Vector.tabulate (num_threads, (fn _ => SyncVar.iVar()))
-    val threads = Vector.map (fn return_ivar => CML.spawn (montecarlopi iters_per_thread return_ivar)) return_ivars
+    val threads = Vector.map (fn return_ivar => CML.spawn (montecarlopi iters_per_thread return_ivar 
+                                                                        (Random.rand(Word.toIntX (MLton.Random.rand ()), 
+                                                                                    Word.toIntX (MLton.Random.rand ()))))) return_ivars
     val return_val = Vector.foldl (fn (elem, acc) => acc + (SyncVar.iGet elem)) 0.0 return_ivars
     val final_pi_estimate = return_val / (Real.fromInt num_threads)
 in
