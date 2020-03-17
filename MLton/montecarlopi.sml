@@ -39,10 +39,9 @@ in
 end
 
 local
-    (* val args = CommandLine.arguments() *) (* TODO:  Add command line argument handling *)
-    val iterations : int =  16777216 * 4
-    val num_threads : int = 1
+    val args = CommandLine.arguments()
+    val iterations = valOf (Int.fromString(List.nth(args, 0)))
+    val num_threads = valOf (Int.fromString(List.nth(args, 1)))
 in
-    val _ = (RunCML.doit ((experiment iterations num_threads), NONE);
-            print "All done!\n")
+    val _ = RunCML.doit ((experiment iterations num_threads), NONE)
 end
