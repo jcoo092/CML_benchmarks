@@ -1,11 +1,13 @@
 val real_divisor = Math.pow (2.0, Real.fromInt Word.wordSize)
 
 fun wordToBoundedReal w = let
-    val wi = Word.toInt w
+    val wi = Word.toIntX w
     val wr = Real.fromInt wi
 in
-    wr / real_divisor
+    (wr / real_divisor) + 0.5
     (* The construction and use of real_divisor was provided by Yawar Raza via the MLton mailing list (thanks!) *)
+    (* I'm not sure why I need the extra + 0.5 there, but without the results I get range from ~0.5 to 0.5,
+       whereas with it they range correctly from 0.0 to 1.0 *)
 end
 
 fun montecarlopi (iterations : int) (return_ivar : real SyncVar.ivar) () = let
@@ -16,9 +18,6 @@ fun montecarlopi (iterations : int) (return_ivar : real SyncVar.ivar) () = let
           val y : real = wordToBoundedReal (MLton.Random.rand ())
           val in_target = (x * x) + (y * y)
           val next_iter = iteration - 1
-          val _ = TextIO.print ("next_iter is: " ^ (Int.toString next_iter) ^ ", in_target is: "
-                                ^ (Real.toString in_target)  ^ ",x is: " ^ (Real.toString x)
-                                ^ ",y is: " ^ (Real.toString y) ^ "\n")
       in
           if in_target < 1.0 then
               helper (accumulator + 1) next_iter
@@ -34,20 +33,16 @@ fun experiment (iterations : int) (num_threads : int) () : unit = let
     val return_ivars = Vector.tabulate (num_threads, (fn _ => SyncVar.iVar()))
     val threads = Vector.map (fn return_ivar => CML.spawn (montecarlopi iters_per_thread return_ivar)) return_ivars
     val return_val = Vector.foldl (fn (elem, acc) => acc + (SyncVar.iGet elem)) 0.0 return_ivars
+    val final_pi_estimate = return_val / (Real.fromInt num_threads)
 in
-    TextIO.print ("Result is: " ^ (Real.toString return_val) ^ "\n")
+    TextIO.print ((Real.toString final_pi_estimate) ^ "\n")
 end
 
 local
     (* val args = CommandLine.arguments() *) (* TODO:  Add command line argument handling *)
-    val iterations : int = 100
-    val num_threads : int = 10
-    val status = RunCML.doit ((experiment iterations num_threads), NONE);
+    val iterations : int =  16777216 * 4
+    val num_threads : int = 1
 in
-   (* val _ = (RunCML.doit ((experiment iterations num_threads), NONE); *)
-   (*          while RunCML.isRunning() do (OS.Process.sleep (Time.fromMilliseconds 100); *)
-   (*                                       print "isRunning was true!\n"); (* Spin-wait for the CML stuff to finish.  This doesn't work... *) *)
-   (*         print "All done!\n") *)
-val _ = (while not (OS.Process.isSuccess status) do ();
-         print "All done!\n")
+    val _ = (RunCML.doit ((experiment iterations num_threads), NONE);
+            print "All done!\n")
 end

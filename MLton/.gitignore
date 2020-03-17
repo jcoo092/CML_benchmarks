@@ -80,3 +80,6 @@ flycheck_*.el
 
 # Exclude all the produced executables
 montecarlopi
+
+#Exclude this particular file, which is relevant to a bug report, not these tests
+MLton_compiler_infinite_loop.tar.gz
