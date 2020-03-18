@@ -78,6 +78,9 @@ flycheck_*.el
 # Exclude .du files, as they're really there as a development helper
 *.du
 
+# Exclude the MLton profiling files
+ml*.out
+
 # Exclude all the produced executables
 montecarlopi
 
