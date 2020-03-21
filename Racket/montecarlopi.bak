@@ -1,0 +1,24 @@
+#lang racket
+
+(provide main)
+
+(define (montecarlopi randomiser iterations)
+ (define (helper accumulator iteration)
+  (match iteration
+   [0 accumulator]
+   [iter (
+       (let ([x (random randomiser)] [y (random randomiser)] [next-iter (- iter 1)])
+        (let ([in-circle (+ (* x x) (* y y))])
+         (if (< in-circle 1.0)
+          (helper accumulator next-iter)
+          (helper (+ accumulator 1) next-iter))))
+   )]))
+ (helper 0 iterations))
+
+(define (experiment iterations num-threads)
+ )
+
+(define (main)
+ (let ([iterations 10] [num-threads 1])
+  (experiment iterations num-threads))
+ (display "All done!"))
