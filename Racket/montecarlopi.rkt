@@ -1,14 +1,15 @@
 #lang racket
 
 (provide main)
+(require racket/flonum)
 
 (define (montecarlopi randomiser iterations return-chan)
   (define (helper accumulator iteration)
     (match iteration
       [0 accumulator]
       [iter (let ([x (random randomiser)] [y (random randomiser)] [next-iter (- iter 1)])
-              (let ([in-circle (+ (* x x) (* y y))])
-                (if (< in-circle 1.0)
+              (let ([in-circle (fl+ (fl* x x) (fl* y y))])
+                (if (fl< in-circle 1.0)
                     (helper (+ accumulator 1) next-iter)
                     (helper accumulator next-iter))))]))
   (channel-put return-chan (helper 0 iterations)))
@@ -21,7 +22,7 @@
         (collect-from-chan (- count 1) (+ sum (channel-get ch)))))
   (for ([i (in-range num-threads)])
     (thread (λ () (montecarlopi (make-pseudo-random-generator) (/ iterations num-threads) ch))))
-  (display (* 4.0 (/ (collect-from-chan num-threads 0) iterations)))
+  (display (fl* 4.0 (fl/ (->fl (collect-from-chan num-threads 0)) (->fl iterations))))
   (newline))
 
 (define (main iterations num-threads)

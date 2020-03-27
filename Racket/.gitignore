@@ -74,3 +74,6 @@ compiled/
 
 # Dependency tracking files
 *.dep
+
+### Ignore exe files on Windows
+*.exe
