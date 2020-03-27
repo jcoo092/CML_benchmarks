@@ -15,3 +15,5 @@ where `$(PATH TO RACKET EXECUTABLE)` is the location of the Racket executable fi
 ## Parameters to each program
 
 Monte Carlo Pi takes, in order, the number of iterations and the number of threads to use.
+
+Select Time takes, in order, the number of iterations and the number of channels for each of the sender and receiver to select over
