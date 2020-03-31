@@ -68,6 +68,9 @@ $RECYCLE.BIN/
 \#*.rkt#
 \#*.rkt#*#
 
+### I'm not sure what this extension is for, but I think it is created by DrRacket also, so I'm sticking it under here
+*.bak
+
 # Compiled racket bytecode
 compiled/
 *.zo
