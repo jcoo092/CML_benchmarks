@@ -4,30 +4,31 @@
 (require racket/random)
 
 (define (sender iterations channels)
-  (match iterations
-    [0 (displayln "sender completed")]
-    [iter 
-           (let ([choice-chan (random-ref channels)])
-             (channel-put choice-chan iter)
-             (sender (- iter 1) channels))]))
+  (let ([choice-chan (random-ref channels)])
+    (match iterations
+      [0
+       (begin (channel-put choice-chan 'NONE)
+              (displayln "Sender completed."))]
+      [iter
+       (channel-put choice-chan iter)
+       (sender (- iter 1) channels)])))
 
-(define (receiver iterations channels notification-semaphore)
-  (match iterations
-    [0 (begin
-         (displayln "receiver completed")
-         (semaphore-post notification-semaphore))]
-    [iter
-     (let ([ignored-choice (sync (choice-evt (vector->values channels)))])
-        (begin (displayln ignored-choice)
-        (receiver (- iter 1) channels notification-semaphore)))]))
+(define (receiver channels notification-semaphore)
+  (define (receive-and-process message)
+    (match message
+      ['NONE (begin
+               (semaphore-post notification-semaphore)
+               (displayln "Receiver completed"))]
+      [Some (begin
+              (receive-and-process (apply sync channels)))]))
+  
+  (receive-and-process (apply sync channels)))
 
 (define (experiment iterations num-channels)
   (let ([channels
-         (vector->immutable-vector
-          ;(make-vector num-channels (make-channel))
-          (build-vector num-channels (λ (i) (make-channel))))]
+         (build-list num-channels (λ (i) (make-channel)))]
         [notification-semaphore (make-semaphore)])
-    (thread (λ () (receiver iterations channels notification-semaphore)))
+    (thread (λ () (receiver channels notification-semaphore)))
     (thread (λ () (sender iterations channels)))
     (semaphore-wait notification-semaphore)))
 
