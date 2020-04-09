@@ -21,7 +21,7 @@
                (displayln "Receiver completed"))]
       [Some (begin
               (receive-and-process (apply sync channels)))]))
-  
+
   (receive-and-process (apply sync channels)))
 
 (define (experiment iterations num-channels)
