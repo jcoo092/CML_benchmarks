@@ -1,9 +1,7 @@
 #lang racket
 
 (provide main)
-(require racket/vector)
 
-; TODO:  Change chans function to use a list
 (define (chans size)
   (build-list size (λ (i) (make-channel))))
 
@@ -23,45 +21,28 @@
   (channel-get vrc0)
   (semaphore-post notification-semaphore))
 
-(define (communicate notification-semaphore ch count comms-events)
-  ;(printf "count: ~v, length: ~a, events: ~v\n" count (length comms-events) comms-events)
+(define (communicate ch count comms-events)
   (let ([zc (zero? count)] [nc (null? comms-events)])
     (cond
-      [(and zc nc) (semaphore-post notification-semaphore)]
+      [(and zc nc) (void)]
       [zc (let ([result (apply sync comms-events)])
-            (communicate notification-semaphore ch count (remq result comms-events)))]
+            (communicate ch count (remq result comms-events)))]
       [nc (begin (sync ch)
-                 (communicate notification-semaphore ch (sub1 count) comms-events))]
+                 (communicate ch (sub1 count) comms-events))]
       [else (let* ([evs (list* ch comms-events)]
-                   [result
-                    ;(wrap-evt ch (λ (e) (begin (displayln (number->string e)) (e))))
-                    (apply sync evs)])
-              ;(displayln (~v result))
+                   [result (apply sync evs)])
               (if (channel-put-evt? result)
-                  (communicate notification-semaphore ch count (remq result comms-events))
-                  (communicate notification-semaphore ch (sub1 count) comms-events)))]))
-  #| (if (and (zero? count) (null? comms-events))
-     (semaphore-post notification-semaphore)
-      ((let* ([evs (list* ch comms-events)]
-              [result
-               ;(wrap-evt ch (λ (e) (begin (displayln (number->string e)) (e))))
-               (apply sync evs)])
-         ;(displayln (~v result))
-         (if (channel-put-evt? result)
-             (communicate notification-semaphore ch count (remq result comms-events))
-             (communicate notification-semaphore ch (sub1 count) comms-events))))) |#
-  (displayln "Finished communicate"))
+                  (communicate ch count (remq result comms-events))
+                  (communicate ch (sub1 count) comms-events)))])))
 
-(define (kn size notification-semaphore)
+(define (kn size)
   (define channels (chans size))
   (define threads
     (for/list ([i (in-range size)])
       (let* ([events (map (λ (c) (channel-put-evt c i)) channels)]
              [events2 (flatten (list* (take events i) (drop events (add1 i))))])
-        (printf "~v\n" events2)
-        (thread (λ () (communicate notification-semaphore (list-ref channels i) (sub1 size)
+        (thread (λ () (communicate (list-ref channels i) (sub1 size)
                                    events2))))))
-  ;(printf "~v\n" threads)
   (displayln "started kn")
   (for-each thread-wait threads))
 
@@ -74,12 +55,10 @@
 
 ; TODO:  Change program to work with multiple iterations of communication
 (define (main experiment-selection iterations size)
-  ;(define notification-semaphore (make-semaphore))
-  ;(displayln experiment-selection)
   (let* ([size-num (string->number size)]
          [notification-semaphore (make-semaphore size-num)])
     (match (string-downcase (string-trim experiment-selection))
       ["ring" (ring size-num notification-semaphore)]
-      ["kn" (kn size-num notification-semaphore)]
+      ["kn" (kn size-num)]
       ["grid" (grid size-num notification-semaphore)]))
   (displayln (string-append experiment-selection " of Whispers completed successfully")))
