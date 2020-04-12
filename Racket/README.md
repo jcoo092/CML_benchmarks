@@ -28,4 +28,4 @@ Communications Time takes, in order, the number of iterations (this is likely to
 
 Spawn takes, in order, the number of iterations and the number of threads to spawn in each iteration.
 
-Whispers takes, in order, the particular style of whispering to run, the number of iterations, and the number whispering agents.  The style of whispering currently can be selected from amongst ring, complete graph and 4-neighbour-grid, which are respectively specified as the strings `ring`, `kn` and `grid`.
+Whispers takes, in order, the particular style of whispering to run, the number of iterations, and the number whispering agents.  The style of whispering currently can be selected from amongst ring, complete graph and 4-neighbour-grid, which are respectively specified as the strings `ring`, `kn` and `grid`.  In the case of grid specifically, the program also as arguments takes the width and height, respectively, of the grid - these default to 50 each if not provided.  A count of the whisperers must still be provided, but is ignored.

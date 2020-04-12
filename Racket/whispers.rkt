@@ -2,12 +2,14 @@
 
 (provide main)
 
-(define (chans size)
+(define (chans-list size)
   (build-list size (λ (i) (make-channel))))
 
-; TODO:  Modify ring to work on a list rather than a vector
+(define (chans-vector size)
+  (build-vector size (λ (i) (make-channel))))
+
 (define (ring size notification-semaphore)
-  (define channels (chans size))
+  (define channels (chans-vector size))
   (define (vrc idx) (vector-ref channels idx))
   (define vrc0 (vrc 0))
   (define (receive-and-fwd in out)
@@ -33,10 +35,10 @@
                    [result (apply sync evs)])
               (if (channel-put-evt? result)
                   (communicate ch count (remq result comms-events))
-                  (communicate ch (sub1 count) comms-events)))])))
+                  (begin (printf "~a\n" result) (communicate ch (sub1 count) comms-events))))])))
 
 (define (kn size)
-  (define channels (chans size))
+  (define channels (chans-list size))
   (define threads
     (for/list ([i (in-range size)])
       (let* ([events (map (λ (c) (channel-put-evt c i)) channels)]
@@ -46,19 +48,46 @@
   (displayln "started kn")
   (for-each thread-wait threads))
 
-; TODO:  Implement grid (which will probably largely be a copy of kn)
-(define (grid size notification-semaphore)
-  (define channels (chans size))
-  (define (receive-and-fwd in out)
-    (channel-put out (begin (displayln "hi!") (channel-get in))))
-  (displayln "unimplemented"))
+(define (compute-neighbour-indices width idx)
+  (let-values ([(y x) (quotient/remainder idx width)])
+    (filter-not (λ (a) (eq? a (void)))
+                (list
+                 (when (positive? y) (- idx width))
+                 (when (positive? x) (sub1 idx))
+                 (when (< x (sub1 width)) (add1 idx))
+                 (when (< y (sub1 width)) (+ idx width))))))
+
+#| (define (retrieve-neighbour-chans vrc indices)
+ (map vrc indices)) |#
+
+#| (define (make-send-evts neighbour-chans idx)
+ (map (λ (c) (channel-put-evt idx)) neighbour-chans)) |#
+
+(define (grid width height)
+  (define size (* width height))
+  (define channels (chans-vector size))
+  (define (vrc idx) (vector-ref channels idx))
+  #| (define (receive-and-fwd in out)
+    (channel-put out (begin (displayln "hi!") (channel-get in)))) |#
+  (define threads
+    (for/list ([i (in-range size)])
+      (let* ([in-chan (vrc i)]
+             #| [neighbour-indices (compute-neighbour-indices width i)]
+            [out-chans (retrieve-neighbour-chans vrc neighbour-indices)] |#
+             [neighs (compute-neighbour-indices width i)]
+             ;[out-chans (map vrc (flatten (compute-neighbour-indices width i)))]
+             [out-chans (map vrc neighs)]
+             [out-evts (map (λ (c) (channel-put-evt c i)) out-chans)])
+        (thread (λ () (communicate in-chan (length out-evts) out-evts))))))
+  (displayln "started grid")
+  (for-each thread-wait threads))
 
 ; TODO:  Change program to work with multiple iterations of communication
-(define (main experiment-selection iterations size)
+(define (main experiment-selection iterations size [width "50"] [height "50"])
   (let* ([size-num (string->number size)]
          [notification-semaphore (make-semaphore size-num)])
     (match (string-downcase (string-trim experiment-selection))
       ["ring" (ring size-num notification-semaphore)]
       ["kn" (kn size-num)]
-      ["grid" (grid size-num notification-semaphore)]))
+      ["grid" (grid (string->number width) (string->number height))]))
   (displayln (string-append experiment-selection " of Whispers completed successfully")))
