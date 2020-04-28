@@ -58,25 +58,12 @@ $RECYCLE.BIN/
 
 # End of https://www.gitignore.io/api/racket,windows,visualstudiocode
 
-###  The below was taken from https://github.com/github/gitignore/blob/master/community/Racket.gitignore on 21 March 2020
-# gitignore template for the Racket language
-# website: http://www.racket-lang.org/
-
-# DrRacket autosave files
-*.rkt~
-*.rkt.bak
-\#*.rkt#
-\#*.rkt#*#
-
 ### I'm not sure what this extension is for, but I think it is created by DrRacket also, so I'm sticking it under here
 *.bak
 
-# Compiled racket bytecode
-compiled/
-*.zo
-
-# Dependency tracking files
-*.dep
-
 ### Ignore exe files on Windows
 *.exe
+
+### Extra folders to be ignored
+benchmarks/
+executables/
