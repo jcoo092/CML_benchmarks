@@ -84,9 +84,9 @@ $(exes_dir)/whispers: $(compiled_dir)/whispers_rkt.zo
 # https://www.cmcrossroads.com/article/gnu-make-escaping-walk-wild-side
 # on 28 April 2020.  My thanks to that blog post's author.
 comma := ,
-space := 
-space += 
-spaces-to-commas = $(subst $(space),$(comma),$1)
+nullstring :=
+space := $(nullstring) # end of the line
+spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 
 # An arbitrarily chosen selection of powers of two for the escalating
 # iteration count.  This is applied universally across the benchmarks.
@@ -105,12 +105,12 @@ hypw3 = hyperfine -w 3 --export-markdown $(benches_dir)/$@_$$i.md
 # This permits me to use the one for loop definition, but customise
 # the executed command
 iter_command = echo $$i
-bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(spaces-to-commas $(THREADS))" "$< $$i {num_threads}"
+bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_threads}"
 bench_linalg : iter_command = $(hypw3) --parameter-list vecs_size "$(VECTORS)" "$< vector $$i {vecs_size}"
-bench_montecarlopi : iter_command = $(hypw3) --parameter-list num_threads "$(spaces-to-commas $(THREADS))" "$< $$i {num_threads}"
-bench_selecttime : iter_command = $(hypw3) --parameter-list num_chans "$(spaces-to-commas $(THREADS))" "$< $$i {num_chans}"
-bench_spawn : iter_command = $(hypw3) --parameter-list num_threads "$(spaces-to-commas $(THREADS))" "$< $$i {num_threads}"
-bench_whispers : iter_command = $(hypw3) --parameter-list num_threads "$(spaces-to-commas $(THREADS))" "$< ring $$i {num_threads}"
+bench_montecarlopi : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_threads}"
+bench_selecttime : iter_command = $(hypw3) --parameter-list num_chans "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_chans}"
+bench_spawn : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_threads}"
+bench_whispers : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< ring $$i {num_threads}"
 
 define for_iters =
 	for i in $(ITERATIONS); do\
@@ -131,7 +131,7 @@ bench_linalg: $(exes_dir)/linalg
 
 bench_montecarlopi: $(exes_dir)/montecarlopi
 	@echo threads $(THREADS)
-	@echo spc-to-com $(spaces-to-commas $(THREADS))
+	@echo spc-to-com $(call spaces-to-commas,$(THREADS))
 	$(for_iters)
 
 bench_selecttime: $(exes_dir)/selecttime
