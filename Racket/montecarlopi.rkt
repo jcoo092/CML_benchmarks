@@ -27,4 +27,5 @@
   (newline))
 
 (define (main iterations num-threads)
-  (experiment (string->number iterations) (string->number num-threads)))
+  (experiment (string->number iterations) (string->number num-threads))
+  (displayln "Monte Carlo Pi completed successfully"))

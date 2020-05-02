@@ -10,7 +10,7 @@ The easy way to compile the programs is to use the provided makefile.  The easie
 make bench_montecarlopi
 ```
 
-Note that this is unlikely to work on Windows, since (to the best of my knowledge) there isn't a good Makefile program for it.  It *should* work when using Powershell on *Nix, I expect.  Note that the Makefile used here has been written targeting, and only tested with, GNU Makefile, so if you use a different program there's a chance you could have some incompatibilites.
+Note that this is unlikely to work on Windows, since (to the best of my knowledge) there isn't a good Makefile program for it.  It *should* work when using Powershell on *Nix, I expect.  Note that the Makefile used here has been written targeting, and only tested with, GNU Make, so if you use a different program there's a chance you could have some incompatibilites.
 
 Alternatively, you can use `make executables/$(PROG)` to compile the individual executable program.  This is considered to be an imperfect system, since you have to type 'executables' before each name, and you can't (currently) use `make all` (which *should* also be the default when you just run `make`).  I am yet to find a way to deal with that appropriately yet, however.
 
@@ -46,9 +46,9 @@ This probably will have roughly comparable performance to the technique describe
 
 ## Parameters to each program
 
-Communications Time takes, in order, the number of iterations (this is likely to change in the future).
+Communications Time takes the number of iterations only (this might change in the future).
 
-Linear Algebra (currently the filename is shortened to linalg) take, in order, the particular style of linear algebra to run, the number of iterations, and the size of a vector, or the size of the rows and columns of a square matrix.   The style of whispering currently can be selected from amongst vector, matrix and mixed, which are respectively specified as the strings `vector`, `matrix` and `mixed`.  Vector performs vector addition and multiplication between two same-sized vectors (one is transposed each iteration for the multiplication, and the first row of the resulting matrix used as an input to the next iteration).  Matrix performs matrix addition and multiplication between two square matrices.  Mixed performs matrix-vector multiplication, for both row and column vectors.
+Linear Algebra (currently the filename is shortened to linalg) takes, in order, the particular style of linear algebra to run, the number of iterations, and the size of a vector, or the size of the rows and columns of a square matrix.   The style of whispering currently can be selected from amongst vector, matrix and mixed, which are respectively specified as the strings `vector`, `matrix` and `mixed`.  Vector performs vector addition and multiplication between two same-sized vectors (one is transposed each iteration for the multiplication, and the first row of the resulting matrix used as an input to the next iteration).  Matrix performs matrix addition and multiplication between two square matrices.  Mixed performs matrix-vector multiplication, for both row and column vectors.
 
 Monte Carlo Pi takes, in order, the number of iterations and the number of threads to use.
 

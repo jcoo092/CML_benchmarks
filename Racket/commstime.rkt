@@ -1,3 +1,4 @@
+
 #lang racket
 
 (provide main)
@@ -20,7 +21,7 @@
 
 ; Sends out what it receives, but over two channels
 ; Strictly speaking, this probably should use a wrap combinator so that either channel can be used
-; first, but it isn't particularly important here
+; first, but I don't think it is particularly important here
 (define (delta in out0 out1 count)
   (for ([i count])
     (let ([x (channel-get in)])
