@@ -34,7 +34,7 @@ $(RACO) make $^
 endef
 
 define racket_compile =
-$(RACO) exe -l -o $@ $^
+$(RACO) exe -o $@ $^
 endef
 
 all: $(names)
@@ -108,13 +108,13 @@ spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 # An arbitrarily chosen selection of powers of two for the escalating
 # iteration count.  This is applied universally across the benchmarks.
 #ITERATIONS = 1 128 512 1024 16384 65536 524288
-ITERATIONS = 1 16384 65536 524288 2097152 16777216
+ITERATIONS = 1 16384 #65536 524288 2097152 16777216
 
 # For most programs, this is the number of threads to be used (it is
 # written this way because it is a parameter to hyperfine).  For Select
 # Time it is instead the number of channels to use.
 #THREADS = 2 4 8 16 32 64 128 512 1024 8192
-THREADS = 2 64 128 512 1024 8192 16384 65536
+THREADS = 2 64 128 512 #1024 8192 16384 65536 524288 2097152
 
 # The number of warmups to use for each run.  I'm defaulting to 5, as
 # a fairly arbitrarily chosen number, but doing it this way means that

@@ -18,10 +18,8 @@
                          (helper (unsafe-fx+ accumulator 1) next-iter)
                          (helper accumulator next-iter))))]))
        (place-channel-put return-chan (helper 0 iterations)))
-     (let [(my-threads
-            (for/list ([i (in-range num-threads)])
-              (thread (λ () (run-thread-in-place (make-pseudo-random-generator))))))]
-       (map sync my-threads)))))
+     (map sync (for/list ([i (in-range num-threads)])
+                 (thread (λ () (run-thread-in-place (make-pseudo-random-generator)))))))))
 
 (define (experiment iterations num-threads)
   (define num-cores (processor-count))
