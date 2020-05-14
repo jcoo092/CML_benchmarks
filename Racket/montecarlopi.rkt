@@ -26,7 +26,7 @@
                          (helper (unsafe-fx+ accumulator 1) next-iter)
                          (helper accumulator next-iter))))]))
        (place-channel-put return-chan (helper 0 thread-iterations)))
-     (map sync (for/list ([i (distribute-extra-iterations iterations num-threads )])
+     (map sync (for/list ([i (distribute-extra-iterations iterations num-threads)])
                  (thread (λ () (run-thread-in-place (make-pseudo-random-generator) i))))))))
 
 (define (experiment iterations num-threads)
