@@ -8,18 +8,18 @@
 # For Racket, the .rkt files are converted to executables using the
 # `raco exe` command that comes with Racket installations.
 
-# List the names of each file
-names ::= montecarlopi whispers commstime linalg selecttime spawn
-#bench_names ::= bench_montecarlopi bench_whispers bench_commstime bench_linalg bench_selecttime bench_spawn
-bench_names ::= $(foreach name, $(names), bench_$(name))
-rkt_zo_names ::= $(foreach name, $(names), $(name)_rkt.zo)
-
 # Relevant directories
 compiled_dir ::= ./compiled
 benches_dir ::= ./benchmarks
 exes_dir ::= ./executables
 
-.PHONY: all bench_all clean $(bench_names) #bench_montecarlopi bench_whispers bench_commstime bench_linalg bench_selecttime bench_spawn
+# List the names of each file
+names ::= montecarlopi whispers commstime linalg selecttime spawn
+bench_names ::= $(foreach name, $(names), bench_$(name))
+exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
+rkt_zo_names ::= $(foreach name, $(names), $(compiled_dir)/$(name)_rkt.zo)
+
+.PHONY: all bench_all clean $(bench_names)
 
 ##################################################
 
@@ -37,56 +37,54 @@ define racket_compile =
 $(RACO) exe -o $@ $^
 endef
 
-all: $(names)
+#all: $(names)
+all: $(exe_names)
 
-### I'm moderately certain that, since the below all follow the exact
-### same template, I should be able to specify them all with a static
-### pattern rule, but I can't quite figure out how to do it.
-### Another issue is that I need to keep putting the directory variables
+### An issue here is that I need to keep putting the directory variables
 ### in front of all the file names, which seems more-than-suboptimal,
 ### but I'm not really sure what the best alternative is.
 
-#~ $(names) : % : $(compiled_dir)/%_rkt.zo
+$(rkt_zo_names) : $(compiled_dir)/%_rkt.zo : %.rkt
+	$(racket_make)
+
+$(exe_names) : $(exes_dir)/% : $(compiled_dir)/%_rkt.zo
+	$(racket_compile)
+	
+#~ $(compiled_dir)/commstime_rkt.zo: commstime.rkt
+#~ 	$(racket_make)
+	
+#~ $(exes_dir)/commstime: $(compiled_dir)/commstime_rkt.zo
+#~ 	$(racket_compile)
+	
+#~ $(compiled_dir)/linalg_rkt.zo: linalg.rkt
+#~ 	$(racket_make)
+	
+#~ $(exes_dir)/linalg: $(compiled_dir)/linalg_rkt.zo
+#~ 	$(racket_compile)
+	
+#~ $(compiled_dir)/montecarlopi_rkt.zo: montecarlopi.rkt
+#~ 	$(racket_make)
+
+#~ $(exes_dir)/montecarlopi: $(compiled_dir)/montecarlopi_rkt.zo
 #~ 	$(racket_compile)
 
-#~ $(names) : %.rkt : $(compiled_dir)/%_rkt.zo
-#~ 	$(racket_make)	
+#~ $(compiled_dir)/selecttime_rkt.zo: selecttime.rkt
+#~ 	$(racket_make)
 	
-$(compiled_dir)/commstime_rkt.zo: commstime.rkt
-	$(racket_make)
-	
-$(exes_dir)/commstime: $(compiled_dir)/commstime_rkt.zo
-	$(racket_compile)
-	
-$(compiled_dir)/linalg_rkt.zo: linalg.rkt
-	$(racket_make)
-	
-$(exes_dir)/linalg: $(compiled_dir)/linalg_rkt.zo
-	$(racket_compile)
-	
-$(compiled_dir)/montecarlopi_rkt.zo: montecarlopi.rkt
-	$(racket_make)
+#~ $(exes_dir)/selecttime: $(compiled_dir)/selecttime_rkt.zo
+#~ 	$(racket_compile)
 
-$(exes_dir)/montecarlopi: $(compiled_dir)/montecarlopi_rkt.zo
-	$(racket_compile)
-
-$(compiled_dir)/selecttime_rkt.zo: selecttime.rkt
-	$(racket_make)
+#~ $(compiled_dir)/spawn_rkt.zo: spawn.rkt
+#~ 	$(racket_make)
 	
-$(exes_dir)/selecttime: $(compiled_dir)/selecttime_rkt.zo
-	$(racket_compile)
-
-$(compiled_dir)/spawn_rkt.zo: spawn.rkt
-	$(racket_make)
+#~ $(exes_dir)/spawn: $(compiled_dir)/spawn_rkt.zo
+#~ 	$(racket_compile)
 	
-$(exes_dir)/spawn: $(compiled_dir)/spawn_rkt.zo
-	$(racket_compile)
+#~ $(compiled_dir)/whispers_rkt.zo: whispers.rkt
+#~ 	$(racket_make)
 	
-$(compiled_dir)/whispers_rkt.zo: whispers.rkt
-	$(racket_make)
-	
-$(exes_dir)/whispers: $(compiled_dir)/whispers_rkt.zo
-	$(racket_compile)
+#~ $(exes_dir)/whispers: $(compiled_dir)/whispers_rkt.zo
+#~ 	$(racket_compile)
 	
 ##################################################
 
@@ -105,21 +103,25 @@ nullstring :=
 space := $(nullstring) # end of the line
 spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 
-# An arbitrarily chosen selection of powers of two for the escalating
-# iteration count.  This is applied universally across the benchmarks.
-#ITERATIONS = 1 128 512 1024 16384 65536 524288
-ITERATIONS = 1 16384 #65536 524288 2097152 16777216
+# A selection of powers of two for the escalating
+# iteration count.  These start at one, and are multiplied by 2**3 each
+# increase to derive the new number.
+# This variable is applied universally across the benchmarks.
+#ITERATIONS = 1 16384 65536 524288 2097152 16777216
+ITERATIONS = 1 8 64 512 4096 32768 262144 2097152 16777216
 
 # For most programs, this is the number of threads to be used (it is
 # written this way because it is a parameter to hyperfine).  For Select
 # Time it is instead the number of channels to use.
-#THREADS = 2 4 8 16 32 64 128 512 1024 8192
-THREADS = 2 64 128 512 #1024 8192 16384 65536 524288 2097152
+# As with $(ITERATIONS), this starts at a base number, two, and then
+# increases each time by multiplying the previous number by 2**3.
+#THREADS = 2 64 128 512 1024 8192 16384 65536 524288 2097152
+THREADS = 2 16 128 1024 8192 65536 524288 4194304
 
-# The number of warmups to use for each run.  I'm defaulting to 5, as
-# a fairly arbitrarily chosen number, but doing it this way means that
+# The number of warmups to use for each run.  I'm defaulting to 2, as
+# an arbitrarily chosen number, but doing it this way means that
 # the number can be overridden on the command line.
-WARMUPS = 5
+WARMUPS = 2
 	
 # Size of vectors or matrix rows/columns for linalg
 VECTORS = 2 3 4 8 32 128 512
@@ -133,9 +135,9 @@ whispers_opts ::= ring kn grid
 benches_record_name = $(benches_dir)/$@_$$i
 bench_commstime : benches_record_name = $(benches_dir)/$@
 bench_linalg : benches_record_name = $(benches_dir)/$@_$$j_$$i
-bench_montecarlopi : benches_record_name = $(benches_dir)/$@_$$i
-bench_selecttime : benches_record_name = $(benches_dir)/$@_$$i
-bench_spawn : benches_record_name = $(benches_dir)/$@_$$i
+#bench_montecarlopi : benches_record_name = $(benches_dir)/$@_$$i
+#bench_selecttime : benches_record_name = $(benches_dir)/$@_$$i
+#bench_spawn : benches_record_name = $(benches_dir)/$@_$$i
 bench_whispers : benches_record_name = $(benches_dir)/$@_$$j_$$i
 
 # Since this part will be common to all benchmarking invocations
@@ -145,8 +147,9 @@ hypw3 = hyperfine -w $(WARMUPS) --export-markdown $(benches_record_name).md --ex
 # iter_command is redefined by each individual benchmarking process
 # This permits me to use the one for loop definition, but customise
 # the executed command
+# Strictly speaking, the entry for bench_commstime isn't actually needed.  I leave it here for completeness.
 iter_command = echo $$i
-#bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_threads}"
+bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_threads}"
 bench_linalg : iter_command = $(hypw3) --parameter-list vecs_size "$(call spaces-to-commas,$(VECTORS))" "$< $$j $$i {vecs_size}"
 bench_montecarlopi : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_threads}"
 bench_selecttime : iter_command = $(hypw3) --parameter-list num_chans "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_chans}"
@@ -179,8 +182,9 @@ bench_linalg: $(exes_dir)/linalg
 		$(for_iters);\
 	done
 
+bench_montecarlopi : THREADS = 2 16 128 1024 8192
 bench_montecarlopi: $(exes_dir)/montecarlopi
-	@echo benches_record_name = $(benches_record_name)
+	#@echo benches_record_name = $(benches_record_name)
 	$(for_iters)
 
 bench_selecttime: $(exes_dir)/selecttime
