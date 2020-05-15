@@ -1,37 +1,64 @@
-#lang racket
+#lang racket/base
 
-(provide main)
-(require racket/random)
+#;(provide main)
+(require racket/random racket/match)
+(require racket/place srfi/1)
 
-(define (sender iterations channels)
-  (let ([choice-chan (random-ref channels)])
-    (match iterations
-      [0
-       (begin (channel-put choice-chan 'NONE)
-              (displayln "Sender completed."))]
+(define (create-chans length)
+  (define (helper iteration rxes txes)
+    (match iteration
+      [0 (values rxes txes)]
       [iter
-       (channel-put choice-chan iter)
-       (sender (- iter 1) channels)])))
+       (let-values ([(rx tx) (place-channel)])
+         (helper (sub1 iteration) (list* rx rxes) (list* tx txes)))]))
+  (helper length null null))
 
-(define (receiver channels notification-semaphore)
-  (define (receive-and-process message)
-    (match message
-      ['NONE (begin
-               (semaphore-post notification-semaphore)
-               (displayln "Receiver completed"))]
-      [Some (begin
-              (receive-and-process (apply sync channels)))]))
+(define (place/sender iterations channels)
+  (place/context
+   c
+   (begin
+     (define (sender iteration)
+       (let ([choice-chan (random-ref channels)])
+         (match iteration
+           [0
+            (begin (place-channel-put choice-chan 'NONE)
+                   (displayln "Sender completed."))]
+           [iter
+            (place-channel-put choice-chan iter)
+            (sender (sub1 iter))])))
+     (sender iterations))))
 
-  (receive-and-process (apply sync channels)))
+(define (place/receiver channels signal-chan)
+  (place/context
+   c
+   (begin
+     (define (receive-and-process channels)
+       (match (apply sync channels)
+         ['NONE
+          (begin
+            (place-channel-put signal-chan 'NONE)
+            (displayln "Receiver completed"))]
+         [Some
+          (receive-and-process channels)]))
+
+     (receive-and-process channels))))
 
 (define (experiment iterations num-channels)
-  (let ([channels
-         (build-list num-channels (λ (i) (make-channel)))]
-        [notification-semaphore (make-semaphore)])
-    (thread (λ () (receiver channels notification-semaphore)))
-    (thread (λ () (sender iterations channels)))
-    (semaphore-wait notification-semaphore)))
+  (let-values ([(ch-rxes ch-txes) (create-chans num-channels)]
+               [(sig-ch-rx sig-ch-tx) (place-channel)])
+    #|(thread (λ () (receiver channels notification-semaphore)))
+    (thread (λ () (sender iterations channel)))|#
+    (place/receiver ch-rxes sig-ch-tx)
+    (place/sender iterations ch-txes)
+    (sync sig-ch-rx)))
 
-(define (main iterations num-channels)
+#;(define (main iterations num-channels)
   (experiment (string->number iterations) (string->number num-channels))
-  (displayln "SelectTime completed successfully"))
+(displayln "SelectTime completed successfully"))
+
+(module+ main
+  (define cmd-params (current-command-line-arguments))
+  (define iterations (string->number (vector-ref cmd-params 0)))
+  (define num-channels (string->number (vector-ref cmd-params 1)))
+  (experiment iterations num-channels)
+  (displayln "Select Time completed successfully"))

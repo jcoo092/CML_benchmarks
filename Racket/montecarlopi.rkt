@@ -31,7 +31,6 @@
 
 (define (experiment iterations num-threads)
   (define num-cores (processor-count))
-  #;(define threads-add (remainder num-threads num-cores))
   (define threads-per-place (max 1 (quotient num-threads num-cores)))
   (define-values (rx-ch tx-ch) (place-channel))
   (define (collect-from-chan count sum)

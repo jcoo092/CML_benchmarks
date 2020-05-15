@@ -3,9 +3,7 @@
 
 (require racket/place)
 
-#;(provide main)
-
-; Simply sends what it receives.  This doesn't need to be a place creator, since it should re-use prefix's place
+; Simply sends what it receives.  This doesn't need to be a place creator, since it should re-use prefix's place.  I think.
 (define (ID in out iterations)
   (for ([i iterations])
     (place-channel-put out (place-channel-get in))))
@@ -23,9 +21,6 @@
   (place/context
    c
    (for ([i iterations])
-     #;
-     (let ([x (place-channel-get in)])
-     (place-channel-put out (add1 x)))
      (place-channel-put out (add1 (place-channel-get in))))))
 
 ; Sends out what it receives, but over two channels
@@ -42,28 +37,15 @@
 ; This isn't made a place, so that it runs on the main thread and thus keeps the whole program from appearing to have finished.
 (define (consumer in iterations)
   (for ([i iterations])
-    #;(displayln (place-channel-get in))
     (place-channel-get in)))
 
 (define (experiment iterations)
-  #;
-  (let ([a (make-channel)] [b (make-channel)] [c (make-channel)] [d (make-channel)]) ;
-  (thread (λ () (prefix 0 a b iterations))) ;
-  (thread (λ () (delta b c d iterations))) ;
-  (thread (λ () (successor c a iterations))) ;
-  (consumer d iterations))
   (let-values ([(a-rx a-tx) (place-channel)] [(b-rx b-tx) (place-channel)]
                [(c-rx c-tx) (place-channel)] [(d-rx d-tx) (place-channel)])
     (place/successor c-rx a-tx iterations)
     (place/delta b-rx c-tx d-tx iterations)
     (place/prefix 0 a-rx b-tx iterations)
     (consumer d-rx iterations)))
-
-
-#;
-(define (main iterations)
-  (experiment (string->number iterations))
-(displayln "Communications Time completed successfully"))
 
 (module+ main
   (define cmd-params (current-command-line-arguments))
