@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require racket/random racket/match)
-(require racket/place srfi/1)
+(require racket/place)
 
 (define (create-chans length)
   (define (helper iteration rxes txes)
@@ -27,27 +27,25 @@
             (sender (sub1 iter))])))
      (sender iterations))))
 
-(define (place/receiver channels signal-chan)
+(define (place/receiver channels)
   (place/context
    c
    (begin
      (define (receive-and-process channels)
        (match (apply sync channels)
          ['NONE
-          (begin
-            (place-channel-put signal-chan 'NONE)
-            (displayln "Receiver completed"))]
+          (displayln "Receiver completed")]
          [Some
           (receive-and-process channels)]))
 
      (receive-and-process channels))))
 
 (define (experiment iterations num-channels)
-  (let-values ([(ch-rxes ch-txes) (create-chans num-channels)]
-               [(sig-ch-rx sig-ch-tx) (place-channel)])
-    (place/receiver ch-rxes sig-ch-tx)
-    (place/sender iterations ch-txes)
-    (sync sig-ch-rx)))
+  (let-values ([(ch-rxes ch-txes) (create-chans num-channels)])
+    (let ([r (place/receiver ch-rxes)]
+          [s (place/sender iterations ch-txes)])
+      (place-wait r)
+      (place-wait s))))
 
 (module+ main
   (define cmd-params (current-command-line-arguments))

@@ -5,7 +5,7 @@
 
 ; Simply sends what it receives.  This doesn't need to be a place creator, since it should re-use prefix's place.  I think.
 (define (ID in out iterations)
-  (for ([i iterations])
+  (for ([i (in-range iterations)])
     (place-channel-put out (place-channel-get in))))
 
 ; Sends out an initial value, then behaves as ID
@@ -20,23 +20,24 @@
 (define (place/successor in out iterations)
   (place/context
    c
-   (for ([i iterations])
+   (for ([i (in-range iterations)])
      (place-channel-put out (add1 (place-channel-get in))))))
 
 ; Sends out what it receives, but over two channels
 ; Strictly speaking, this probably should use a wrap combinator so that either channel can be used
-; first, but I don't think it is particularly important here
+; first, but I don't think it is particularly important here.  Moreover, I'm not sure that place channels
+; actually permit one to sync on a send, which makes the wrap combinator difficult (impossible?) to use.
 (define (place/delta in out0 out1 iterations)
   (place/context
    c
-   (for ([i iterations])
+   (for ([i (in-range iterations)])
      (let ([x (place-channel-get in)])
        (place-channel-put out0 x)
        (place-channel-put out1 x)))))
 
 ; This isn't made a place, so that it runs on the main thread and thus keeps the whole program from appearing to have finished.
 (define (consumer in iterations)
-  (for ([i iterations])
+  (for ([i (in-range iterations)])
     (place-channel-get in)))
 
 (define (experiment iterations)
