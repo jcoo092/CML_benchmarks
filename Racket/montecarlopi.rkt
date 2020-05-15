@@ -37,7 +37,7 @@
     (if (< count 1)
         sum
         (collect-from-chan (unsafe-fx- count 1) (unsafe-fx+ sum (place-channel-get rx-ch)))))
-  (for ([i (distribute-extra-iterations iterations num-cores)])
+  (for ([i (in-vector (distribute-extra-iterations iterations num-cores))])
     (montecarlopi/place i threads-per-place tx-ch))
   (displayln (unsafe-fl* 4.0 (unsafe-fl/ (->fl (collect-from-chan (* threads-per-place num-cores) 0)) (->fl iterations)))))
 

@@ -1,6 +1,5 @@
 #lang racket/base
 
-#;(provide main)
 (require racket/random racket/match)
 (require racket/place srfi/1)
 
@@ -46,15 +45,9 @@
 (define (experiment iterations num-channels)
   (let-values ([(ch-rxes ch-txes) (create-chans num-channels)]
                [(sig-ch-rx sig-ch-tx) (place-channel)])
-    #|(thread (λ () (receiver channels notification-semaphore)))
-    (thread (λ () (sender iterations channel)))|#
     (place/receiver ch-rxes sig-ch-tx)
     (place/sender iterations ch-txes)
     (sync sig-ch-rx)))
-
-#;(define (main iterations num-channels)
-  (experiment (string->number iterations) (string->number num-channels))
-(displayln "SelectTime completed successfully"))
 
 (module+ main
   (define cmd-params (current-command-line-arguments))
