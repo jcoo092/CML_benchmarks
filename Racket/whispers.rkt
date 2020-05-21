@@ -34,12 +34,6 @@
   (values rxes txes))
 
 ; This assumes that the permutation size is smaller than the length of the list.
-#;
-(define (permute-list l permutation-size)
-  (define new-back (take l permutation-size))
-  (define new-front (drop l permutation-size))
-(flatten (list new-front new-back)))
-
 (define (permute-list l permutation-size)
   (define-values (new-back new-front) (split-at l permutation-size))
   (append new-front new-back))
@@ -63,8 +57,7 @@
            (communicate ch count (remq result comms-events)))]
      [nc (begin (sync ch)
                 (communicate ch (sub1 count) comms-events))]
-     [else (let (#;[evs (list* ch comms-events)]
-                  [result (apply sync ch comms-events)])
+     [else (let ([result (apply sync ch comms-events)])
              (if (channel-put-evt? result)
                  (communicate ch count (remq result comms-events))
                  (begin (printf "~a\n" result) (communicate ch (sub1 count) comms-events))))])))
