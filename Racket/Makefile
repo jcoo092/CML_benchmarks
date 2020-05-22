@@ -37,7 +37,6 @@ define racket_compile =
 $(RACO) exe -o $@ $^
 endef
 
-#all: $(names)
 all: $(exe_names)
 
 ### An issue here is that I need to keep putting the directory variables
@@ -49,43 +48,7 @@ $(rkt_zo_names) : $(compiled_dir)/%_rkt.zo : %.rkt
 
 $(exe_names) : $(exes_dir)/% : $(compiled_dir)/%_rkt.zo
 	$(racket_compile)
-	
-#~ $(compiled_dir)/commstime_rkt.zo: commstime.rkt
-#~ 	$(racket_make)
-	
-#~ $(exes_dir)/commstime: $(compiled_dir)/commstime_rkt.zo
-#~ 	$(racket_compile)
-	
-#~ $(compiled_dir)/linalg_rkt.zo: linalg.rkt
-#~ 	$(racket_make)
-	
-#~ $(exes_dir)/linalg: $(compiled_dir)/linalg_rkt.zo
-#~ 	$(racket_compile)
-	
-#~ $(compiled_dir)/montecarlopi_rkt.zo: montecarlopi.rkt
-#~ 	$(racket_make)
 
-#~ $(exes_dir)/montecarlopi: $(compiled_dir)/montecarlopi_rkt.zo
-#~ 	$(racket_compile)
-
-#~ $(compiled_dir)/selecttime_rkt.zo: selecttime.rkt
-#~ 	$(racket_make)
-	
-#~ $(exes_dir)/selecttime: $(compiled_dir)/selecttime_rkt.zo
-#~ 	$(racket_compile)
-
-#~ $(compiled_dir)/spawn_rkt.zo: spawn.rkt
-#~ 	$(racket_make)
-	
-#~ $(exes_dir)/spawn: $(compiled_dir)/spawn_rkt.zo
-#~ 	$(racket_compile)
-	
-#~ $(compiled_dir)/whispers_rkt.zo: whispers.rkt
-#~ 	$(racket_make)
-	
-#~ $(exes_dir)/whispers: $(compiled_dir)/whispers_rkt.zo
-#~ 	$(racket_compile)
-	
 ##################################################
 
 # Commands for running hyperfine to benchmark each program
@@ -107,7 +70,6 @@ spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 # iteration count.  These start at one, and are multiplied by 2**3 each
 # increase to derive the new number.
 # This variable is applied universally across the benchmarks.
-#ITERATIONS = 1 16384 65536 524288 2097152 16777216
 ITERATIONS = 1 8 64 512 4096 32768 262144 2097152 16777216
 
 # For most programs, this is the number of threads to be used (it is
@@ -115,29 +77,30 @@ ITERATIONS = 1 8 64 512 4096 32768 262144 2097152 16777216
 # Time it is instead the number of channels to use.
 # As with $(ITERATIONS), this starts at a base number, two, and then
 # increases each time by multiplying the previous number by 2**3.
-#THREADS = 2 64 128 512 1024 8192 16384 65536 524288 2097152
 THREADS = 2 16 128 1024 8192 65536 524288 4194304
 
 # The number of warmups to use for each run.  I'm defaulting to 2, as
-# an arbitrarily chosen number, but doing it this way means that
+# an arbitrarily chosen number, but using a variable means that
 # the number can be overridden on the command line.
 WARMUPS = 2
-	
-# Size of vectors or matrix rows/columns for linalg
-VECTORS = 2 3 4 8 32 128 512
-	
+
+# Size of vectors or matrix rows/columns for linalg.  These numbers were
+# chosen pretty much entirely arbitrarily, but mostly biased towards
+# smaller vectors & matrices, as I expect those to be more important
+# for me later on.
+VECTORS = 2 3 4 8 16 32 128 512 2048 65536 524288
+
 # Options for the linear algebra program
-linalg_opts ::= vector matrix mixed
+LINALG_OPTS ::= vector matrix mixed
 
 # Options for Whispers program
-whispers_opts ::= ring kn grid
+# Currently, because the latter two options aren't implemented in the program
+# they are commented out here.
+WHISPERS_OPTS ::= ring #kn grid
 
 benches_record_name = $(benches_dir)/$@_$$i
 bench_commstime : benches_record_name = $(benches_dir)/$@
 bench_linalg : benches_record_name = $(benches_dir)/$@_$$j_$$i
-#bench_montecarlopi : benches_record_name = $(benches_dir)/$@_$$i
-#bench_selecttime : benches_record_name = $(benches_dir)/$@_$$i
-#bench_spawn : benches_record_name = $(benches_dir)/$@_$$i
 bench_whispers : benches_record_name = $(benches_dir)/$@_$$j_$$i
 
 # Since this part will be common to all benchmarking invocations
@@ -170,7 +133,6 @@ bench_all: $(bench_names)
 bench_commstime: $(exes_dir)/commstime
 	@echo benches_record_name = $(benches_record_name)
 	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$< {num_iters}"
-	#$(for_iters)
 
 # Note that this one is different from most of the others in that it
 # requires an extra input, which requires both adapting the iter_command
@@ -178,13 +140,12 @@ bench_commstime: $(exes_dir)/commstime
 # to get things to work, I need to use a variable named j in the loop
 # wrapping the one which uses the variable i...
 bench_linalg: $(exes_dir)/linalg
-	for j in $(linalg_opts); do\
+	for j in $(LINALG_OPTS); do\
 		$(for_iters);\
 	done
 
 bench_montecarlopi : THREADS = 2 16 128 1024 8192
 bench_montecarlopi: $(exes_dir)/montecarlopi
-	#@echo benches_record_name = $(benches_record_name)
 	$(for_iters)
 
 bench_selecttime: $(exes_dir)/selecttime
@@ -196,10 +157,10 @@ bench_spawn: $(exes_dir)/spawn
 # This has the same issues as bench_linalg - see the comment there.
 bench_whispers: $(exes_dir)/whispers
 	@echo benches_record_name = $(benches_record_name)
-	for j in $(whispers_opts); do\
+	for j in $(WHISPERS_OPTS); do\
 		$(for_iters); \
 	done
-	
+
 ##################################################
 
 # Implement a 'clean' command.  This just clears out the compiled

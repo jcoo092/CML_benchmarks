@@ -199,7 +199,6 @@
   (let* ([experiment-selection (string-trim (vector-ref cmd-params 0))]
          [iterations (string->number (vector-ref cmd-params 1))]
          [size-num (string->number (vector-ref cmd-params 2))]
-         [notification-semaphore (make-semaphore size-num)]
          [num-places (processor-count)])
     (case (string-downcase experiment-selection)
       [("ring") (ring/place iterations size-num num-places)]
