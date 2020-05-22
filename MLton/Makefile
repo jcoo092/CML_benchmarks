@@ -1,4 +1,4 @@
-montecarlopi: montecarlopi.sml montecarlopi.mlb
+montecarlopi: montecarlopi.sml cml_benchmarks.mlb
 	mlton -prefer-abs-paths true -show-def-use montecarlopi.du montecarlopi.mlb
 
 mcp_bench_iters: montecarlopi
