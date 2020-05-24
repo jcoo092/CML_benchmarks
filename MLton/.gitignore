@@ -81,8 +81,7 @@ flycheck_*.el
 # Exclude the MLton profiling files
 ml*.out
 
-# Exclude all the produced executables
-montecarlopi
-
-#Exclude this particular file, which is relevant to a bug report, not these tests
-MLton_compiler_infinite_loop.tar.gz
+# Exclude all the sub-directories (at least for now)
+/executables/
+/compiled/
+/benchmarks/
