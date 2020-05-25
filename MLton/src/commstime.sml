@@ -24,13 +24,13 @@ fun successor _ _ 0 = ()
       successor in_ch out_ch next_count
   end
 
-fun consumer _ end_chan 0 = (CML.send (end_chan, 0))
-  | consumer (in_ch : int CML.chan) (end_chan : int CML.chan) (count : int) : unit = let
+fun consumer _ 0 = ()
+  | consumer (in_ch : int CML.chan) (count : int) : unit = let
       val next_count = count - 1
       val msg = (CML.recv in_ch)
   in
-      TextIO.print ("Received: " ^ (Int.toString (msg)) ^ "\n");
-      consumer in_ch end_chan next_count
+      (* TextIO.print ("Received: " ^ (Int.toString (msg)) ^ "\n"); *)
+      consumer in_ch next_count
   end
 
 fun delta _ _ _ 0 = ()
@@ -50,16 +50,14 @@ fun commstime (iterations : int) : unit = let
     val b = CML.channel ()
     val c = CML.channel ()
     val d = CML.channel ()
-    val end_chan = CML.channel ()
-    val consumer = CML.spawn (fn () => consumer d end_chan iterations)
+    val consumer = CML.spawn (fn () => consumer d iterations)
     val delta = CML.spawn (fn () =>
                               delta b c d
                                     iterations)
     val successor = CML.spawn (fn () =>
-                                  successor b c iterations)
+                                  successor c a iterations)
 in
     CML.spawn (fn () => prefix 0 a b iterations);
-    (* (CML.recv end_chan); *)
     TextIO.print ("Job's done!\n")
 end
 
