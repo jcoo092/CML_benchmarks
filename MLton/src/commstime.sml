@@ -24,7 +24,7 @@ fun consumer _ 0 = ()
       val next_count = count - 1
       val msg = (CML.recv in_ch)
   in
-      (* TextIO.print ("Received: " ^ (Int.toString (msg)) ^ "\n"); *)
+      (* TextIO.print ("Received: " ^ (Int.toString (msg)) ^ ".\n"); *)
       consumer in_ch next_count
   end
 
@@ -49,11 +49,11 @@ fun commstime (iterations : int) : unit = let
     val _ = CML.spawn (fn () => successor c a)
 in
     CML.spawn (fn () => prefix 0 a b);
-    TextIO.print ("Job's done!\n")
+    (* TextIO.print ("Job's done!\n") *)
 end
 
 fun experiment (iterations : int) () : unit = let
-    val _ = () (* This is only included here because I'm not sure how to write a fun without the let ... in structure*)
+    (* val _ = () (* This is only included here because I'm not sure how to write a fun without the let ... in structure*) *)
 in
     commstime iterations;
     TextIO.print("Communications Time completed succesfully.\n")

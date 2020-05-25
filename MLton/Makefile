@@ -16,7 +16,7 @@ mlbs_dir ::= ./mlbs
 src_dir ::= ./src
 
 # List the names of each file
-names ::= commstime montecarlopi #linalg montecarlopi selecttime spawn whispers
+names ::= commstime montecarlopi selecttime  #linalg montecarlopi selecttime spawn whispers
 bench_names ::= $(foreach name, $(names), bench_$(name))
 exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
 #rkt_zo_names ::= $(foreach name, $(names), $(compiled_dir)/$(name)_rkt.zo)
@@ -46,7 +46,7 @@ all: $(names)
 
 $(names) : % : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
 	$(mlton_compile)
-	
+
 #montecarlopi: montecarlopi.sml $(mlbs_dir)/montecarlopi.mlb
 #	mlton -prefer-abs-paths true -show-def-use montecarlopi.du $(mlbs_dir)/montecarlopi.mlb
 
