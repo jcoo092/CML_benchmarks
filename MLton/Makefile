@@ -16,7 +16,7 @@ mlbs_dir ::= ./mlbs
 src_dir ::= ./src
 
 # List the names of each file
-names ::= commstime montecarlopi selecttime spawn #linalg montecarlopi selecttime spawn whispers
+names ::= commstime montecarlopi selecttime spawn whispers #linalg montecarlopi selecttime spawn whispers
 bench_names ::= $(foreach name, $(names), bench_$(name))
 exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
 #rkt_zo_names ::= $(foreach name, $(names), $(compiled_dir)/$(name)_rkt.zo)
@@ -164,11 +164,12 @@ bench_whispers: $(exes_dir)/whispers
 
 ##################################################
 
-# Implement a 'clean' command.  This just clears out the compiled
-# bytecode files and executables.
+# Implement a 'clean' command.  This just clears out the executables
+# and the definition use files.  Everything else is an important part
+# of the build process.
 clean:
 	-rm $(exes_dir)/*
-	-rm $(compiled_dir)/*
+	-rm $(mlbs_dir)/*.du
 
 #montecarlopi: montecarlopi.sml cml_benchmarks.mlb
 #	mlton -prefer-abs-paths true -show-def-use montecarlopi.du montecarlopi.mlb
