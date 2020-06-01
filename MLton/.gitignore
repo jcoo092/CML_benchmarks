@@ -85,3 +85,5 @@ ml*.out
 /executables/
 /compiled/
 /benchmarks/
+# This was taken from https://github.com/iraikov/tensor and interested parties are directed to there to obtain a copy of the files
+/tensor/
