@@ -3,7 +3,7 @@ local
   $(SML_LIB)/basis/mlton.mlb
   $(SML_LIB)/cml/cml.mlb
   $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
-  ../tensor/tensor.mlb
+  ../../../tensor/tensor.mlb
 in
   ../src/linalg.sml
 end
