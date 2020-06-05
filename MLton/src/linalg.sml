@@ -29,10 +29,13 @@ end
 
 fun rem_all_by_256 t = Tensor.map rem_or_rand t
 
+(* I really hate generating random tensors this way, but it's the easiest way to do it right now... *)
+fun randomTensor size = rem_all_by_256 (ITensor.tabulate (size, fn _ => INumber.zero))
+
 (********** Vector-specific bits **********)
 fun vector iterations size = let
-    val vec1 = rem_all_by_256 (ITensor.tabulate ([size, 1], fn _ => INumber.zero))
-    val vec2 = rem_all_by_256 (ITensor.tabulate ([size, 1], fn _ => INumber.zero))
+    val vec1 = randomTensor [size, 1]
+    val vec2 = randomTensor [size, 1]
     fun runvec 0 _ _ = ()
       | runvec iteration v1 v2 = let
           val next_iter = iteration - 1
@@ -51,10 +54,48 @@ end
 
 
 (********** Matrix-specific bits **********)
-fun matrix iterations size = TextIO.print("Matrix is not implemented yet")
+fun matrix iterations size = let
+    val mat1 = randomTensor [size, size]
+    val mat2 = randomTensor [size, size]
+    fun runmat 0 _ _ = ()
+      | runmat iteration m1 m2 = let
+          val next_iter = iteration - 1
+          val pluses = rem_all_by_256 (ITensor.+ (m1, m2))
+          val times = rem_all_by_256 (ITensor.dot(m1, m2))
+      in
+          (* tfiwn2 m1 "m1";
+          tfiwn2 m2 "m2";
+          tfiwn2 pluses "pluses";
+          tfiwn2 times "times"; *)
+          runmat next_iter pluses times
+      end
+in
+    runmat iterations mat1 mat2
+end
 
 (********** Mixed-specific bits **********)
-fun mixed iterations size = TextIO.print("Mixed is not implemented yet")
+fun mixed iterations size = let
+    val initcvec = randomTensor [size, 1]
+    val initrvec = randomTensor [1, size]
+    val initmat = randomTensor [size, size]
+    fun runmixed 0 _ _ _ = ()
+      | runmixed iteration colvec rowvec m = let
+          val next_iter = iteration - 1
+          val timescol = rem_all_by_256 (ITensor.dot(m, colvec))
+          val timesrow = rem_all_by_256 (ITensor.dot(rowvec, m))
+          val nextmat = rem_all_by_256 (ITensor.dot(timescol, timesrow))
+      in
+          (* tfiwn2 colvec "colvec";
+          tfiwn2 rowvec "rowvec";
+          tfiwn2 m "m";
+          tfiwn2 timescol "timescol";
+          tfiwn2 timesrow "timesrow";
+          tfiwn2 nextmat "nextmat"; *)
+          runmixed next_iter timescol timesrow nextmat
+      end
+in
+    runmixed iterations initcvec initrvec initmat
+end
 
 (********** 'Main' **********)
 
