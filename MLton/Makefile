@@ -31,24 +31,23 @@ exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
 # Conventions chapter, specifically ch 16.3 (as of 28 April 2020)
 MLTON = mlton
 
-#montecarlopi: montecarlopi.sml cml_benchmarks.mlb
-#	mlton -prefer-abs-paths true -show-def-use montecarlopi.du cml_benchmarks.mlb
-
 define mlton_compile =
 $(MLTON) -prefer-abs-paths true -codegen native -show-def-use $(mlbs_dir)/$@.du -output $(exes_dir)/$@ $(mlbs_dir)/$@.mlb
 endef
 
 all: $(names)
 
-### An issue here is that I need to keep putting the directory variables
-### in front of all the file names, which seems more-than-suboptimal,
-### but I'm not really sure what the best alternative is.
+### An issue here is that I need to do this silly thing where I make
+### each of the program names essentially just a call to the static
+### rule where the program name is preceded by the executables directory
+### which seems like a terrible idea, but I'm not sure how to work
+### around it.
 
-$(names) : % : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
+$(names) : % : $(exes_dir)/%
+	make $(exes_dir)/$@
+
+$(exe_names) : $(exes_dir)/% : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
 	$(mlton_compile)
-
-#montecarlopi: montecarlopi.sml $(mlbs_dir)/montecarlopi.mlb
-#	mlton -prefer-abs-paths true -show-def-use montecarlopi.du $(mlbs_dir)/montecarlopi.mlb
 
 ##################################################
 
@@ -170,12 +169,3 @@ bench_whispers: whispers
 clean:
 	-rm $(exes_dir)/*
 	-rm $(mlbs_dir)/*.du
-
-#montecarlopi: montecarlopi.sml cml_benchmarks.mlb
-#	mlton -prefer-abs-paths true -show-def-use montecarlopi.du montecarlopi.mlb
-
-#mcp_bench_iters: montecarlopi
-#	hyperfine -w 3 -L ITERATIONS 1048576,4194304,16777216,67108864 './montecarlopi {ITERATIONS} 4'
-
-#mcp_bench_threads: montecarlopi
-#	hyperfine -w 3 -L THREADS 1,2,4,8,16,32,128,512,1024 './montecarlopi 4194304 {THREADS}'
