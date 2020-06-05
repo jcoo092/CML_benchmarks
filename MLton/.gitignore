@@ -75,3 +75,13 @@ flycheck_*.el
 
 # End of https://www.gitignore.io/api/linux,emacs,standardml
 
+# Exclude .du files, as they're really there as a development helper
+*.du
+
+# Exclude the MLton profiling files
+ml*.out
+
+# Exclude all the sub-directories (at least for now)
+/executables/
+/compiled/
+/benchmarks/
