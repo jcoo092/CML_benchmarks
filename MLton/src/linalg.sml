@@ -2,6 +2,8 @@
 
 (********** Common bits **********)
 
+(* val tfiwn2 = TensorFile.intTensorWriteWithName2 TextIO.stdOut *)
+
 val max_val = 256
 val max_val_word = Word.fromInt max_val
 
@@ -29,17 +31,18 @@ fun rem_all_by_256 t = Tensor.map rem_or_rand t
 
 (********** Vector-specific bits **********)
 fun vector iterations size = let
-    val vec1 = ITensor.tabulate ([size, 1], fn _ => INumber.zero)
-    val vec2 = ITensor.tabulate ([size, 1], fn _ => INumber.one)
+    val vec1 = rem_all_by_256 (ITensor.tabulate ([size, 1], fn _ => INumber.zero))
+    val vec2 = rem_all_by_256 (ITensor.tabulate ([size, 1], fn _ => INumber.zero))
     fun runvec 0 _ _ = ()
       | runvec iteration v1 v2 = let
           val next_iter = iteration - 1
-          val pluses = ITensor.+(v1, v2)
-          val times = v2
+          val pluses = rem_all_by_256 (ITensor.+(v1, v2))
+          val times = rem_all_by_256 (TensorSlice.sliceOutNewTensor'([0,0], [size,1], (ITensor.dot(v1, (ITensor.transpose v2)))))
       in
-          TensorFile.intTensorWriteWithName2 TextIO.stdOut v1 "v1";
-          TensorFile.intTensorWriteWithName2 TextIO.stdOut v2 "v2";
-          TensorFile.intTensorWriteWithName2 TextIO.stdOut pluses "pluses";
+          (* tfiwn2 v1 "v1";
+          tfiwn2 v2 "v2";
+          tfiwn2 pluses "pluses";
+          tfiwn2 times "times"; *)
           runvec next_iter pluses times
       end
 in
