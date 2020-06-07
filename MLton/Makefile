@@ -3,23 +3,25 @@
 # horrific, but it serves my purposes.  I have nevertheless attempted
 # to make it as clean and straightforward as possible.  In particular,
 # I have endeavoured to ensure that anything that is used in a rule or
-# definition has already been defined further up in the file.
+# definition has already been defined further up in the file, with the
+# exception of the `all` command, which is deliberately placed first so that
+# it is the default command for `make`.
 
 # For MLton, the .sml files are converted to executables using the
 # `mlton` command that runs the MLton compiler.
 
 # Relevant directories
-#compiled_dir ::= ./compiled
-benches_dir ::= ./benchmarks
-exes_dir ::= ./executables
 mlbs_dir ::= ./mlbs
 src_dir ::= ./src
+exes_dir ::= ./executables
+benches_dir ::= ./benchmarks
+hypscr_dir ::= ../Hyperfine_scripts
 
 # List the names of each file
 names ::= commstime linalg montecarlopi selecttime spawn whispers
-bench_names ::= $(foreach name, $(names), bench_$(name))
 exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
-#rkt_zo_names ::= $(foreach name, $(names), $(compiled_dir)/$(name)_rkt.zo)
+bench_names ::= $(foreach name, $(names), bench_$(name))
+json_names ::= $(foreach name, $(names), json_$(name))
 
 .PHONY: all bench_all clean $(bench_names)
 
@@ -39,9 +41,9 @@ all: $(names)
 
 ### An issue here is that I need to do this silly thing where I make
 ### each of the program names essentially just a call to the static
-### rule where the program name is preceded by the executables directory
-### which seems like a terrible idea, but I'm not sure how to work
-### around it.
+### rule where the program name is preceded by the executables
+### directory, which seems like a terrible idea, but I'm not sure how
+### to work around it.
 
 $(names) : % : $(exes_dir)/%
 	make $(exes_dir)/$@
@@ -53,7 +55,7 @@ $(exe_names) : $(exes_dir)/% : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
 
 # Commands for running hyperfine to benchmark each program
 # Unfortunately, because each program takes different parameters,
-# I can't simply defined a nice canned recipe like for compliation.
+# I can't simply define a nice canned recipe like with compliation.
 # Instead, I attempt to address it with target specific variables.
 
 # The below were compiled from the GNU Make manual, chapter 6.2,
@@ -94,8 +96,6 @@ VECTORS = 2 3 4 8 16 32 128 512 #2048 65536 524288
 LINALG_OPTS ::= vector matrix mixed
 
 # Options for Whispers program
-# Currently, because the latter two options aren't implemented in the program
-# they are commented out here.
 WHISPERS_OPTS ::= ring kn grid
 
 benches_record_name = $(benches_dir)/$@_$$i
@@ -105,12 +105,13 @@ bench_whispers : benches_record_name = $(benches_dir)/$@_$$j_$$i
 
 # Since this part will be common to all benchmarking invocations
 # I define it as a separate variable
-hypw3 = hyperfine -w $(WARMUPS) --export-markdown $(benches_record_name).md --export-csv $(benches_record_name).csv
+hypw3 = hyperfine -w $(WARMUPS) --export-markdown $(benches_record_name).md --export-csv $(benches_record_name).csv --export-json $(benches_record_name).json
 
 # iter_command is redefined by each individual benchmarking process
 # This permits me to use the one for loop definition, but customise
 # the executed command
-# Strictly speaking, the entry for bench_commstime isn't actually needed.  I leave it here for completeness.
+# Strictly speaking, the entry for bench_commstime isn't actually 
+# needed.  I leave it here for completeness.
 iter_command = echo $$i
 bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_threads}"
 bench_linalg : iter_command = $(hypw3) --parameter-list vecs_size "$(call spaces-to-commas,$(VECTORS))" "$(exes_dir)/$< $$j $$i {vecs_size}"
@@ -165,7 +166,18 @@ bench_whispers: whispers
 
 # Implement a 'clean' command.  This just clears out the executables
 # and the definition use files.  Everything else is an important part
-# of the build process.
+# of the build process and shouldn't be removed.
 clean:
 	-rm $(exes_dir)/*
 	-rm $(mlbs_dir)/*.du
+	
+# Remove all the benchmarking output files.  This is kept separate from the 
+# `clean` command above, since it might not be desirable to remove them at the
+# same time at the other output files.
+clean_bench:
+	-rm $(benches_dir)/*
+	
+# A convenience command to execute both of the above cleaning commands
+clean_all:
+	@make clean
+	@make clean_bench

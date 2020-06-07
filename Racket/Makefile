@@ -3,15 +3,22 @@
 # horrific, but it serves my purposes.  I have nevertheless attempted
 # to make it as clean and straightforward as possible.  In particular,
 # I have endeavoured to ensure that anything that is used in a rule or
-# definition has already been defined further up in the file.
+# definition has already been defined further up in the file, with the
+# exception of the `all` command, which is deliberately placed first so that
+# it is the default command for `make`.
 
-# For Racket, the .rkt files are converted to executables using the
-# `raco exe` command that comes with Racket installations.
+# For Racket, the .rkt files are converted to bytecode *_rkt.zo files
+# using the `raco make` command, and then from there into regular
+# executables using the `raco exe` command that comes with Racket 
+# installations.
 
 # Relevant directories
-compiled_dir ::= ./compiled
-benches_dir ::= ./benchmarks
+src_dir ::= ./src
+# I don't like having `compiled` as a subdirectory of `src`, but 
+# `raco make` doesn't really give me much of a choice in the matter.
+compiled_dir ::= $(src_dir)/compiled
 exes_dir ::= ./executables
+benches_dir ::= ./benchmarks
 
 # List the names of each file
 names ::= montecarlopi whispers commstime linalg selecttime spawn
@@ -37,13 +44,18 @@ define racket_compile =
 $(RACO) exe -o $@ $^
 endef
 
-all: $(exe_names)
+all: $(names)
 
-### An issue here is that I need to keep putting the directory variables
-### in front of all the file names, which seems more-than-suboptimal,
-### but I'm not really sure what the best alternative is.
+### An issue here is that I need to do this silly thing where I make
+### each of the program names essentially just a call to the static
+### rule where the program name is preceded by the executables
+### directory, which seems like a terrible idea, but I'm not sure how
+### to work around it.
 
-$(rkt_zo_names) : $(compiled_dir)/%_rkt.zo : %.rkt
+$(names) : % : $(exes_dir)/%
+	make $(exes_dir)/$@
+
+$(rkt_zo_names) : $(compiled_dir)/%_rkt.zo : $(src_dir)/%.rkt
 	$(racket_make)
 
 $(exe_names) : $(exes_dir)/% : $(compiled_dir)/%_rkt.zo
@@ -53,7 +65,7 @@ $(exe_names) : $(exes_dir)/% : $(compiled_dir)/%_rkt.zo
 
 # Commands for running hyperfine to benchmark each program
 # Unfortunately, because each program takes different parameters,
-# I can't simply defined a nice canned recipe like for compliation.
+# I can't simply define a nice canned recipe like for compliation.
 # Instead, I attempt to address it with target specific variables.
 
 # The below were compiled from the GNU Make manual, chapter 6.2,
@@ -72,16 +84,15 @@ spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 # This variable is applied universally across the benchmarks.
 ITERATIONS = 1 8 64 512 4096 32768 262144 2097152 16777216
 
-# For most programs, this is the number of threads to be used (it is
-# written this way because it is a parameter to hyperfine).  For Select
-# Time it is instead the number of channels to use.
+# For most programs, this is the number of threads to be used.  For 
+# Select Time it is instead the number of channels to use.
 # As with $(ITERATIONS), this starts at a base number, two, and then
 # increases each time by multiplying the previous number by 2**3.
 THREADS = 2 16 128 1024 8192 65536 524288 4194304
 
-# The number of warmups to use for each run.  I'm defaulting to 2, as
-# an arbitrarily chosen number, but using a variable means that
-# the number can be overridden on the command line.
+# The number of warmups to use for hyperfine to perform each run.  I'm 
+# defaulting to 2, as an arbitrarily chosen number, but using a 
+# variable means that the number can be overridden on the command line.
 WARMUPS = 2
 
 # Size of vectors or matrix rows/columns for linalg.  These numbers were
@@ -94,8 +105,8 @@ VECTORS = 2 3 4 8 16 32 128 512 2048 65536 524288
 LINALG_OPTS ::= vector matrix mixed
 
 # Options for Whispers program
-# Currently, because the latter two options aren't implemented in the program
-# they are commented out here.
+# Currently, because the latter two options aren't implemented in the 
+# program they are commented out here.
 WHISPERS_OPTS ::= ring #kn grid
 
 benches_record_name = $(benches_dir)/$@_$$i
@@ -105,12 +116,13 @@ bench_whispers : benches_record_name = $(benches_dir)/$@_$$j_$$i
 
 # Since this part will be common to all benchmarking invocations
 # I define it as a separate variable
-hypw3 = hyperfine -w $(WARMUPS) --export-markdown $(benches_record_name).md --export-csv $(benches_record_name).csv
+hypw3 = hyperfine -w $(WARMUPS) --export-markdown $(benches_record_name).md --export-csv $(benches_record_name).csv --export-json $(benches_record_name).json
 
 # iter_command is redefined by each individual benchmarking process
 # This permits me to use the one for loop definition, but customise
 # the executed command
-# Strictly speaking, the entry for bench_commstime isn't actually needed.  I leave it here for completeness.
+# Strictly speaking, the entry for bench_commstime isn't actually 
+# needed.  I leave it here for completeness.
 iter_command = echo $$i
 bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$i {num_threads}"
 bench_linalg : iter_command = $(hypw3) --parameter-list vecs_size "$(call spaces-to-commas,$(VECTORS))" "$< $$j $$i {vecs_size}"
@@ -164,7 +176,19 @@ bench_whispers: $(exes_dir)/whispers
 ##################################################
 
 # Implement a 'clean' command.  This just clears out the compiled
-# bytecode files and executables.
+# bytecode files and executables.  Everything else is an important part
+# of the build process and shouldn't be removed.
 clean:
 	-rm $(exes_dir)/*
 	-rm $(compiled_dir)/*
+	
+# Remove all the benchmarking output files.  This is kept separate from the 
+# `clean` command above, since it might not be desirable to remove them at the
+# same time at the other output files.
+clean_bench:
+	-rm $(benches_dir)/*
+	
+# A convenience command to execute both of the above cleaning commands
+clean_all:
+	@make clean
+	@make clean_bench

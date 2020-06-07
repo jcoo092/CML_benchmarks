@@ -1,6 +1,6 @@
 # Racket language CML benchmarks
 
-Directory containing the files for the Racket language benchmarks.  This contains both the source file for each benchmark, as well as a Makefile to build the programs and run the benchmarks, plus some directories which are also used in the process.  The 'compiled' directory contains the output from the `raco make` command for each program; the 'executables' directory contains the executable Racket files produced by the `raco exe` command, and the 'benchmarks' directory contains the outputs from the benchmarking process.  Please note that the benchmarking process is still very much subject to change in the future, so for now it is a 'best effort', and may not provide especially useful results.  Also, you probably will want to check the following variables inside the Makefile to ensure you won't start a benchmark that'll take way too long for you:  `ITERATIONS`, `THREADS`, `WARMUPS`, `VECTORS`, `LINALG_OPTS` AND `WHISPERS_OPTS`.
+Directory containing the files for the Racket language benchmarks.  This contains both the source file for each benchmark, as well as a Makefile to build the programs and run the benchmarks, plus some directories which are also used in the process.  The 'src' directory contains the source code files for the benchmarks, and its 'compiled' subdirectory contains the output from the `raco make` command for each program; the 'executables' directory contains the executable Racket files produced by the `raco exe` command, and the 'benchmarks' directory contains the outputs from the benchmarking process.  Please note that the benchmarking process is still very much subject to change in the future, so for now it is a 'best effort', and may not provide especially useful results.  Also, you probably will want to check the following variables inside the Makefile to ensure you won't start a benchmark that'll take way too long for you:  `ITERATIONS`, `THREADS`, `WARMUPS`, `VECTORS`, `LINALG_OPTS` AND `WHISPERS_OPTS`.
 
 ## Compiling these programs
 
@@ -12,7 +12,9 @@ make bench_montecarlopi
 
 Note that this is unlikely to work on Windows, since (to the best of my knowledge) there isn't a good Makefile program for it.  It *should* work when using Powershell on *Nix, I expect.  Note that the Makefile used here has been written targeting, and only tested with, GNU Make, so if you use a different program there's a chance you could have some incompatibilites.
 
-Alternatively, you can use `make executables/$(PROG)` to compile the individual executable program.  This is considered to be an imperfect system, since you have to type 'executables' before each name.  Alternatively, you can type `make all` to compile each of the programs in turn.  I am yet to find a way to deal with that appropriately yet, however.
+Alternatively, you can use `make $(PROG)` to compile the individual executable program.  Alternatively, you can type `make all` to compile each of the programs in turn.  Note that when using either of these options you will occasionally see messages about entering or exiting directories.  This is a by-product of the way that I have structured the Makefile to keep the various files in separate directories, but permit one to use simply `make $(PROG)` at the command line.
+
+In all cases, the bytecode files produced by the `raco make` command are output into the 'compiled' subdirectory under 'src'.  This isn't really a great spot to put them, but `raco make` doesn't seem to give any choice in the matter.
 
 ## Executing these programs
 
@@ -31,7 +33,7 @@ These programs are the full-blown executables that apparently include an embeddi
 An alternative way to execute these programs is to run them directly from the Racket scripts with the Racket interpreter.  E.g. to execute the MonteCarloPi program on Windows (where this particular one has been developed), you would use:
 
 ``` Powershell
-$(PATH TO RACKET EXECUTABLE)\Racket.exe -tm .\montecarlopi.rkt $(NUM ITERATIONS) $(NUM THREADS)
+$(PATH TO RACKET EXECUTABLE)\Racket.exe -tm .\src\montecarlopi.rkt $(NUM ITERATIONS) $(NUM THREADS)
 ```
 
 where `$(PATH TO RACKET EXECUTABLE)` is the location of the Racket executable file (on the current computer it is "C:\Program Files\Racket"); `$(NUM ITERATIONS)` is the desired number of iterations for the program to run; and $(NUM THREADS) is the number of threads to be use.  `-tm` are flags to the Racket executable - the details aren't important here, just know they need to be included.  The other programs will all follow much the same pattern.  Of course, if the Racket executable is on the PATH, then there is no need to specify the path to it in the command.
