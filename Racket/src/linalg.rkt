@@ -3,16 +3,18 @@
 (provide main)
 (require math/matrix math/array)
 
-(define (rando) (random 2 256))
+(define max-val 256)
 
-(define (remainder-or-random numerator denominator)
-  (define rem (remainder numerator denominator))
+(define (rando) (random 2 max-val))
+
+(define (remainder-or-random numerator)
+  (define rem (remainder numerator max-val))
   (if (zero? rem)
       (rando)
       rem))
 
 (define (rem-all-by-256 vec)
-  (array-map (λ (m) (remainder-or-random m 256)) vec))
+  (array-map (λ (m) (remainder-or-random m)) vec))
 
 ;***************************
 
@@ -60,13 +62,11 @@
   (printf "rowvec: ~v\n" rowvec) |#
     (if (zero? iteration)
         (void)
-        (let ([timescol (matrix* m colvec)]
-              [timesrow (matrix* rowvec m)])
-          (let* ([next-iter (sub1 iteration)]
-                 [next-colvec (rem-all-by-256 timescol)]
-                 [next-rowvec (rem-all-by-256 timesrow)]
-                 [next-matrix (rem-all-by-256 (matrix* next-colvec next-rowvec))])
-            (process-mixed next-iter next-colvec next-rowvec next-matrix)))))
+        (let* ([next-iter (sub1 iteration)]
+               [next-colvec (rem-all-by-256 (matrix* m colvec))]
+               [next-rowvec (rem-all-by-256 (matrix* rowvec m))]
+               [next-matrix (rem-all-by-256 (matrix* next-colvec next-rowvec))])
+          (process-mixed next-iter next-colvec next-rowvec next-matrix))))
   (process-mixed iterations initcolvec initrowvec initmatrix1))
 
 ;***************************
