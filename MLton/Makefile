@@ -15,15 +15,13 @@ mlbs_dir ::= ./mlbs
 src_dir ::= ./src
 exes_dir ::= ./executables
 benches_dir ::= ./benchmarks
-hypscr_dir ::= ../Hyperfine_scripts
 
 # List the names of each file
 names ::= commstime linalg montecarlopi selecttime spawn whispers
 exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
 bench_names ::= $(foreach name, $(names), bench_$(name))
-json_names ::= $(foreach name, $(names), json_$(name))
 
-.PHONY: all bench_all clean $(bench_names)
+.PHONY: all bench_all $(bench_names) clean_all clean clean_bench
 
 ##################################################
 
@@ -50,6 +48,9 @@ $(names) : % : $(exes_dir)/%
 
 $(exe_names) : $(exes_dir)/% : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
 	$(mlton_compile)
+
+#$(names) : % : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
+#	$(mlton_compile)
 
 ##################################################
 
@@ -111,9 +112,9 @@ hypw3 = hyperfine -w $(WARMUPS) --export-markdown $(benches_record_name).md --ex
 # This permits me to use the one for loop definition, but customise
 # the executed command
 # Strictly speaking, the entry for bench_commstime isn't actually 
-# needed.  I leave it here for completeness.
+# needed.  I leave it here, commented out, for completeness.
 iter_command = echo $$i
-bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_threads}"
+#bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_threads}"
 bench_linalg : iter_command = $(hypw3) --parameter-list vecs_size "$(call spaces-to-commas,$(VECTORS))" "$(exes_dir)/$< $$j $$i {vecs_size}"
 bench_montecarlopi : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_threads}"
 bench_selecttime : iter_command = $(hypw3) --parameter-list num_chans "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_chans}"
@@ -133,7 +134,7 @@ bench_all: $(bench_names)
 # can handle everything without resorting to an external for loop.
 bench_commstime: commstime
 	@echo benches_record_name = $(benches_record_name)
-	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$< {num_iters}"
+	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$(exes_dir)/$< {num_iters}"
 
 # Note that this one is different from most of the others in that it
 # requires an extra input, which requires both adapting the iter_command
