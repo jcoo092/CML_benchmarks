@@ -3,53 +3,46 @@
 (require racket/random racket/match)
 (require racket/place)
 
-(define (create-chans length)
-  (define (helper iteration rxes txes)
-    (match iteration
-      [0 (values rxes txes)]
-      [iter
-       (let-values ([(rx tx) (place-channel)])
-         (helper (sub1 iteration) (list* rx rxes) (list* tx txes)))]))
-  (helper length null null))
+(define (create-place-chans length)
+  (for/fold ([rxes null] [txes null] #:result (values rxes txes))
+      ([iteration (in-range length)])
+    (define-values (rx tx) (place-channel))
+    (values (cons rx rxes) (cons tx txes))))
 
 (define (place/sender iterations channels)
   (place/context
    c
    (begin
-     (define (sender iteration)
-       (let ([choice-chan (random-ref channels)])
-         (match iteration
-           [0
-            (begin (place-channel-put choice-chan 'NONE)
-                   (displayln "Sender completed."))]
-           [iter
-            (place-channel-put choice-chan iter)
-            (sender (sub1 iter))])))
-     (sender iterations))))
+     (for ([i (in-range iterations)])
+       (place-channel-put (random-ref channels) i))
+     (place-channel-put (random-ref channels) 'NONE))))
 
 (define (place/receiver channels)
   (place/context
    c
    (begin
-     (define (receive-and-process channels)
-       (match (apply sync channels)
+     (define choose (apply choice-evt channels))
+     (define (receive-and-process)
+       (match (sync choose)
          ['NONE
-          (displayln "Receiver completed")]
+          (void)]
          [Some
-          (receive-and-process channels)]))
+          (begin
+            (printf "Received message ~v~n" Some)
+            (receive-and-process))]))
 
-     (receive-and-process channels))))
+     (receive-and-process))))
 
 (define (experiment iterations num-channels)
-  (let-values ([(ch-rxes ch-txes) (create-chans num-channels)])
+  (let-values ([(ch-rxes ch-txes) (create-place-chans num-channels)])
     (let ([r (place/receiver ch-rxes)]
           [s (place/sender iterations ch-txes)])
       (place-wait r)
-      (place-wait s))))
+      (place-wait s)))
+  (displayln "Select Time completed successfully."))
 
 (module+ main
   (define cmd-params (current-command-line-arguments))
   (define iterations (string->number (vector-ref cmd-params 0)))
   (define num-channels (string->number (vector-ref cmd-params 1)))
-  (experiment iterations num-channels)
-  (displayln "Select Time completed successfully"))
+  (experiment iterations num-channels))
