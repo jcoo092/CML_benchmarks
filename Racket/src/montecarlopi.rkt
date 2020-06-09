@@ -14,7 +14,7 @@
 
 (define (montecarlopi/place iterations num-threads return-chan)
   (place/context
-   c  
+   c
    (begin
      (define (run-thread-in-place randomiser thread-iterations)
        (define (helper accumulator iteration)
@@ -39,11 +39,13 @@
         (collect-from-chan (unsafe-fx- count 1) (unsafe-fx+ sum (place-channel-get rx-ch)))))
   (for ([i (in-vector (distribute-extra-iterations iterations num-cores))])
     (montecarlopi/place i threads-per-place tx-ch))
-  (displayln (unsafe-fl* 4.0 (unsafe-fl/ (->fl (collect-from-chan (* threads-per-place num-cores) 0)) (->fl iterations)))))
+  (displayln (unsafe-fl* 4.0 (unsafe-fl/
+                              (->fl (collect-from-chan (* threads-per-place num-cores) 0))
+                              (->fl iterations))))
+  (displayln "Monte Carlo Pi completed successfully"))
 
 (module+ main
   (define cmd-params (current-command-line-arguments))
   (define iterations (string->number (vector-ref cmd-params 0)))
   (define num-threads (string->number (vector-ref cmd-params 1)))
-  (experiment iterations num-threads)
-  (displayln "Monte Carlo Pi completed successfully"))
+  (experiment iterations num-threads))
