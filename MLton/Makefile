@@ -32,7 +32,7 @@ bench_names ::= $(foreach name, $(names), bench_$(name))
 MLTON = mlton
 
 define mlton_compile =
-$(MLTON) -prefer-abs-paths true -codegen native -show-def-use $(mlbs_dir)/$(notdir $@.du) -output $@ $<
+$(MLTON) -prefer-abs-paths true -codegen native -show-def-use $(mlbs_dir)/$(notdir $@.du) -output ./$@ ./$<
 endef
 
 all: $(names)

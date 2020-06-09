@@ -16,20 +16,25 @@ fun montecarlopi (iterations : int) (return_ivar : real SyncVar.ivar) (randomise
               helper accumulator next_iter (Rand.random second_rand)
       end
 in
-    SyncVar.iPut (return_ivar, (4.0 * ((real (helper 0 iterations randomiser)) / (real iterations))))
+    SyncVar.iPut (return_ivar, (4.0 * ((real (helper 0 iterations randomiser)) /
+                                       (real iterations))))
 end
 
 fun experiment (iterations : int) (num_threads : int) () : unit = let
     val _ = MLton.Random.srand (valOf (MLton.Random.useed ()))
-    val iters_per_thread : int = iterations div num_threads
+    (* The +1 ensures that this program doesn't do too few iterations *)
+    val iters_per_thread : int = Int.quot(iterations, num_threads) + 1
     val return_ivars = Vector.tabulate (num_threads, (fn _ => SyncVar.iVar()))
-    val threads = Vector.map (fn return_ivar => CML.spawn (montecarlopi iters_per_thread return_ivar
-                                                                       ((Rand.mkRandom (WtoW31 (MLton.Random.rand ()))) ())
-                                                                        )) return_ivars
+    val threads = Vector.map (fn return_ivar =>
+                                 CML.spawn
+                                     (montecarlopi iters_per_thread return_ivar
+                                                   ((Rand.mkRandom (WtoW31 (MLton.Random.rand ()))) ())
+                             )) return_ivars
     val return_val = Vector.foldl (fn (elem, acc) => acc + (SyncVar.iGet elem)) 0.0 return_ivars
     val final_pi_estimate = return_val / (Real.fromInt num_threads)
 in
-    TextIO.print ((Real.toString final_pi_estimate) ^ "\n")
+    TextIO.print ((Real.toString final_pi_estimate) ^ "\n");
+    TextIO.print ("Monte Carlo Pi completed succesfully!\n")
 end
 
 local
@@ -37,5 +42,5 @@ local
     val iterations = valOf (Int.fromString(List.nth(args, 0)))
     val num_threads = valOf (Int.fromString(List.nth(args, 1)))
 in
-    val _ = RunCML.doit ((experiment iterations num_threads), NONE)
+val _ = RunCML.doit ((experiment iterations num_threads), NONE)
 end
