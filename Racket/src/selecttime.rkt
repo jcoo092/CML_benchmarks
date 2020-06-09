@@ -13,9 +13,10 @@
   (place/context
    c
    (begin
-     (for ([i (in-range iterations)])
-       (place-channel-put (random-ref channels) i))
-     (place-channel-put (random-ref channels) 'NONE))))
+     (define choose (apply choice-evt channels))
+     (for ([i (in-range (/ iterations 2))])
+       (place-channel-put (random-ref channels) i)
+       (sync choose)))))
 
 (define (place/receiver channels)
   (place/context
@@ -23,13 +24,9 @@
    (begin
      (define choose (apply choice-evt channels))
      (define (receive-and-process)
-       (match (sync choose)
-         ['NONE
-          (void)]
-         [Some
-          (begin
-            (printf "Received message ~v~n" Some)
-            (receive-and-process))]))
+       #;(printf "Received message ~v~n" (sync choose))
+       (place-channel-put (random-ref channels) 'ACK)
+       (receive-and-process))
 
      (receive-and-process))))
 
@@ -37,7 +34,6 @@
   (let-values ([(ch-rxes ch-txes) (create-place-chans num-channels)])
     (let ([r (place/receiver ch-rxes)]
           [s (place/sender iterations ch-txes)])
-      (place-wait r)
       (place-wait s)))
   (displayln "Select Time completed successfully."))
 
