@@ -1,67 +1,65 @@
 (********** Common bits **********)
 val id = fn x => x
 
-fun dotalk 0 [] _ _ = ()
-  | dotalk 0 sendEvts recvEvt self = let
+fun dowhisper 0 [] _ _ = ()
+  | dowhisper 0 sendEvts recvEvt self = let
       val _ = CML.sync (List.hd sendEvts)
   in
-      dotalk 0 (List.tl sendEvts) recvEvt self
+      dowhisper 0 (List.tl sendEvts) recvEvt self
   end
-  | dotalk count [] recvEvt self = let
+  | dowhisper count [] recvEvt self = let
       val _ = CML.sync recvEvt
   in
-      dotalk (count - 1) [] recvEvt self
+      dowhisper (count - 1) [] recvEvt self
   end
-  | dotalk count sendEvts recvEvt self = let
+  | dowhisper count sendEvts recvEvt self = let
       val msg = CML.select [recvEvt, (List.hd sendEvts)]
   in
       if msg = self then
-          dotalk count (List.tl sendEvts) recvEvt self
+          dowhisper count (List.tl sendEvts) recvEvt self
       else
-          dotalk (count - 1) sendEvts recvEvt self
+          dowhisper (count - 1) sendEvts recvEvt self
   end
 
 fun communicate iterations count sendEvts i recvCh = let
-    (* The below wrap is used for debugging purposes, and isn't normally needed *)
-    (* val recv_evt = CML.wrap (CML.recvEvt recvCh,
-                             fn v => (MLton.Thread.atomically
-                                          (fn () => TextIO.print ("Thread " ^ (Int.toString i) ^
-                                                                  " received from thread " ^ (Int.toString v) ^ ".\n")); v)) *)
     val recv_evt = CML.recvEvt recvCh
-    fun runtalk 0 = ()
-      | runtalk iteration = let
-          val _ = dotalk count sendEvts recv_evt i
+    fun runwhisper 0 = ()
+      | runwhisper iteration = let
+          val _ = dowhisper count sendEvts recv_evt i
       in
-          runtalk (iteration - 1)
+          runwhisper (iteration - 1)
       end
 in
-    runtalk iterations
+    runwhisper iterations
 end
 
 (********** Ring-specific bits **********)
 fun ring iterations num_threads = let
     fun recv_and_fwd in_ch out_ch = let
+        val msg = CML.recv in_ch
+    in
+        CML.send (out_ch, msg);
+        if msg = 0 then
+            ()
+        else
+            recv_and_fwd in_ch out_ch
+    end
+
+    fun interpose in_ch out_ch = let
     in
         case CML.recv in_ch of
-            0 => CML.send(out_ch, 0)
-          | msg => (CML.send(out_ch, msg);
-                    recv_and_fwd in_ch out_ch)
+            0  => ()
+          | msg => (
+              CML.send(out_ch, (msg - 1));
+              interpose in_ch out_ch)
     end
-    fun interpose in_ch out_ch = let
-    in case CML.recv in_ch of
-           0  => ()
-         | msg => ((* MLton.Thread.atomically
-                       (fn () => TextIO.print("Message was: " ^ (Int.toString msg) ^ ".\n")); *)
-             CML.send(out_ch, (msg - 1));
-             interpose in_ch out_ch)
-    end
+
     val chans = List.tabulate(num_threads, fn _ => CML.channel ())
     val thds = ListPair.map (
             fn (a, b) => CML.spawn (fn () => recv_and_fwd a b))
                             (chans, (List.tl chans))
     val interpose_thd = CML.spawn (
             fn () => interpose (List.last chans) (List.hd chans))
-    val jointhds = List.map CML.joinEvt thds
 in
     CML.send((List.hd chans), iterations);
     List.app CML.sync (List.map CML.joinEvt thds);
@@ -73,13 +71,16 @@ end
 fun kn iterations num_threads = let
     val count = num_threads - 1
     val chans = List.tabulate (num_threads, fn _ => CML.channel ())
-    val part_send_evts = List.map (fn c => fn v => CML.wrap (CML.sendEvt (c, v), fn _ => v)) chans
+    val part_send_evts = List.map (fn c => fn v =>
+                                      CML.wrap (CML.sendEvt (c, v), fn _ => v)) chans
     val thds = ListPair.mapEq
-                   (fn (i, c) => let val sends = (List.take (part_send_evts, i)) @ (List.drop (part_send_evts, (i + 1)))
-                                     val sendEvts = List.map (fn s => s i) sends
-                                 in
-                                     CML.spawn(fn () => communicate iterations count sendEvts i c)
-                                 end) (List.tabulate(num_threads, id), chans)
+                   (fn (i, c) => let
+                        val sends = (List.take (part_send_evts, i)) @
+                                    (List.drop (part_send_evts, (i + 1)))
+                        val sendEvts = List.map (fn s => s i) sends
+                    in
+                        CML.spawn(fn () => communicate iterations count sendEvts i c)
+                    end) (List.tabulate(num_threads, id), chans)
 in
     List.app (fn t => CML.sync (CML.joinEvt t)) thds
 end
@@ -107,8 +108,11 @@ fun grid iterations width height = let
     val size = width * height
     val chans = List.tabulate (size, fn i => (i, CML.channel ()))
     val neighbour_lists = compute_neighbours_list width height size
-    val part_send_evts = Vector.fromList (List.map (fn (_, c) => fn v => CML.wrap (CML.sendEvt (c, v), fn _ => v)) chans)
-    val pse_n = List.map (fn l => List.map (fn i => Vector.sub(part_send_evts, i)) l)  neighbour_lists
+    val part_send_evts = Vector.fromList (List.map (fn (_, c) => fn v =>
+                                                       CML.wrap (CML.sendEvt (c, v), fn _ => v)) chans)
+    val pse_n = List.map (fn l => List.map
+                                      (fn i => Vector.sub(part_send_evts, i)) l)
+                         neighbour_lists
     val thds = ListPair.mapEq (fn (sends, (i, c)) => let
                                    val sendEvts = List.map (fn s => s i) sends
                                in CML.spawn (fn () => communicate iterations
