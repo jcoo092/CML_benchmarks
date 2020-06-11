@@ -24,8 +24,6 @@
   (define initvector1 (build-matrix 1 size (λ (a b) (rando))))
   (define initvector2 (build-matrix 1 size (λ (a b) (rando))))
   (define (process-vectors iteration v1 v2)
-    #| (printf "v1: ~v\n" v1)
-  (printf "v2: ~v\n" v2) |#
     (if (zero? iteration)
         (void)
         (let ([pluses (matrix+ v1 v2)]
@@ -39,8 +37,6 @@
   (define initmatrix1 (build-matrix size size (λ (a b) (rando))))
   (define initmatrix2 (build-matrix size size (λ (a b) (rando))))
   (define (process-matrices iteration m1 m2)
-    #| (printf "m1: ~v\n" m1)
-  (printf "m2: ~v\n" m2) |#
     (if (zero? iteration)
         (void)
         (let ([pluses (matrix+ m1 m2)]
@@ -57,9 +53,6 @@
   (define initrowvec (build-matrix 1 size (λ (a b) (rando))))
   (define initmatrix1 (build-matrix size size (λ (a b) (rando))))
   (define (process-mixed iteration colvec rowvec m)
-    #| (printf "m: ~v\n" m)
-  (printf "colvec: ~v\n" colvec)
-  (printf "rowvec: ~v\n" rowvec) |#
     (if (zero? iteration)
         (void)
         (let* ([next-iter (sub1 iteration)]

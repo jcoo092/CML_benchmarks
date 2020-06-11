@@ -1,6 +1,6 @@
 val WtoW31 = Word31.fromLargeWord o Word.toLargeWord
 
-fun montecarlopi (iterations : int) (return_ivar : real SyncVar.ivar) (randomiser: Rand.rand) () = let
+fun montecarlopi iterations return_chan randomiser = let
     fun helper accumulator 0 _ = accumulator
       | helper accumulator iteration rando = let
           val first_rand = Rand.random rando
@@ -16,24 +16,34 @@ fun montecarlopi (iterations : int) (return_ivar : real SyncVar.ivar) (randomise
               helper accumulator next_iter (Rand.random second_rand)
       end
 in
-    SyncVar.iPut (return_ivar, (4.0 * ((real (helper 0 iterations randomiser)) /
-                                       (real iterations))))
+    (* CML.send (return_chan,
+              (4.0 * ((real (helper 0 iterations randomiser)) /
+                      (real iterations)))) *)
+    CML.send (return_chan, (helper 0 iterations randomiser))
 end
 
-fun experiment (iterations : int) (num_threads : int) () : unit = let
+fun experiment (iterations : int) (num_threads : int) : unit = let
     val _ = MLton.Random.srand (valOf (MLton.Random.useed ()))
+    val return_chan = CML.channel ()
+
+    fun collect_from_chan 0 sum = sum
+      | collect_from_chan count sum = let
+          val msg = CML.recv return_chan
+      in
+          collect_from_chan (count - 1) (sum + msg)
+      end
+
     (* The +1 ensures that this program doesn't do too few iterations *)
     val iters_per_thread : int = Int.quot(iterations, num_threads) + 1
-    val return_ivars = Vector.tabulate (num_threads, (fn _ => SyncVar.iVar()))
-    val threads = Vector.map (fn return_ivar =>
-                                 CML.spawn
-                                     (montecarlopi iters_per_thread return_ivar
-                                                   ((Rand.mkRandom (WtoW31 (MLton.Random.rand ()))) ())
-                             )) return_ivars
-    val return_val = Vector.foldl (fn (elem, acc) => acc + (SyncVar.iGet elem)) 0.0 return_ivars
-    val final_pi_estimate = return_val / (Real.fromInt num_threads)
+    val _ = Vector.tabulate (num_threads,
+                             fn _ => CML.spawn (fn () =>
+                                                   montecarlopi iters_per_thread return_chan
+                                                                ((Rand.mkRandom (WtoW31 (MLton.Random.rand ()))) ())))
 in
-    TextIO.print ((Real.toString final_pi_estimate) ^ "\n");
+    (* TextIO.print ((Real.toString ((collect_from_chan num_threads 0.0) /
+                                  (Real.fromInt num_threads))) ^ "\n"); *)
+    TextIO.print((Real.toString (4.0 * ((real (collect_from_chan num_threads 0)) /
+                                        (real iterations)))) ^ "\n");
     TextIO.print ("Monte Carlo Pi completed succesfully!\n")
 end
 
@@ -42,5 +52,5 @@ local
     val iterations = valOf (Int.fromString(List.nth(args, 0)))
     val num_threads = valOf (Int.fromString(List.nth(args, 1)))
 in
-val _ = RunCML.doit ((experiment iterations num_threads), NONE)
+val _ = RunCML.doit (fn () => (experiment iterations num_threads), NONE)
 end
