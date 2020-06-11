@@ -15,15 +15,13 @@ mlbs_dir ::= ./mlbs
 src_dir ::= ./src
 exes_dir ::= ./executables
 benches_dir ::= ./benchmarks
-hypscr_dir ::= ../Hyperfine_scripts
 
 # List the names of each file
 names ::= commstime linalg montecarlopi selecttime spawn whispers
 exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
 bench_names ::= $(foreach name, $(names), bench_$(name))
-json_names ::= $(foreach name, $(names), json_$(name))
 
-.PHONY: all bench_all clean $(bench_names)
+.PHONY: all bench_all $(bench_names) clean_all clean clean_bench
 
 ##################################################
 
@@ -34,7 +32,7 @@ json_names ::= $(foreach name, $(names), json_$(name))
 MLTON = mlton
 
 define mlton_compile =
-$(MLTON) -prefer-abs-paths true -codegen native -show-def-use $(mlbs_dir)/$@.du -output $(exes_dir)/$@ $(mlbs_dir)/$@.mlb
+$(MLTON) -prefer-abs-paths true -codegen native -show-def-use $(mlbs_dir)/$(notdir $@.du) -output ./$@ ./$<
 endef
 
 all: $(names)
@@ -48,8 +46,11 @@ all: $(names)
 $(names) : % : $(exes_dir)/%
 	make $(exes_dir)/$@
 
-$(exe_names) : $(exes_dir)/% : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
+$(exe_names) : $(exes_dir)/% : $(mlbs_dir)/%.mlb $(src_dir)/%.sml
 	$(mlton_compile)
+
+#$(names) : % : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
+#	$(mlton_compile)
 
 ##################################################
 
@@ -79,7 +80,7 @@ ITERATIONS = 1 8 64 512 4096 32768 #262144 2097152 16777216
 # Time it is instead the number of channels to use.
 # As with $(ITERATIONS), this starts at a base number, two, and then
 # increases each time by multiplying the previous number by 2**3.
-THREADS = 2 16 128 1024 #8192 65536 524288 4194304
+THREADS = 2 16 128 1024 8192 #65536 524288 4194304
 
 # The number of warmups to use for each run.  I'm defaulting to 2, as
 # an arbitrarily chosen number, but using a variable means that
@@ -90,13 +91,13 @@ WARMUPS = 2
 # chosen pretty much entirely arbitrarily, but mostly biased towards
 # smaller vectors & matrices, as I expect those to be more important
 # for me later on.
-VECTORS = 2 3 4 8 16 32 128 512 #2048 65536 524288
+VECTORS = 2 3 4 8 16 32 128 #512 2048 65536 524288
 
 # Options for the linear algebra program
 LINALG_OPTS ::= vector matrix mixed
 
 # Options for Whispers program
-WHISPERS_OPTS ::= ring kn grid
+WHISPERS_OPTS ::= ring #kn grid
 
 benches_record_name = $(benches_dir)/$@_$$i
 bench_commstime : benches_record_name = $(benches_dir)/$@
@@ -111,9 +112,9 @@ hypw3 = hyperfine -w $(WARMUPS) --export-markdown $(benches_record_name).md --ex
 # This permits me to use the one for loop definition, but customise
 # the executed command
 # Strictly speaking, the entry for bench_commstime isn't actually 
-# needed.  I leave it here for completeness.
+# needed.  I leave it here, commented out, for completeness.
 iter_command = echo $$i
-bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_threads}"
+#bench_commstime : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_threads}"
 bench_linalg : iter_command = $(hypw3) --parameter-list vecs_size "$(call spaces-to-commas,$(VECTORS))" "$(exes_dir)/$< $$j $$i {vecs_size}"
 bench_montecarlopi : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_threads}"
 bench_selecttime : iter_command = $(hypw3) --parameter-list num_chans "$(call spaces-to-commas,$(THREADS))" "$(exes_dir)/$< $$i {num_chans}"
@@ -133,7 +134,7 @@ bench_all: $(bench_names)
 # can handle everything without resorting to an external for loop.
 bench_commstime: commstime
 	@echo benches_record_name = $(benches_record_name)
-	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$< {num_iters}"
+	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$(exes_dir)/$< {num_iters}"
 
 # Note that this one is different from most of the others in that it
 # requires an extra input, which requires both adapting the iter_command
