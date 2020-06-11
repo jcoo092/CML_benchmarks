@@ -26,12 +26,7 @@
                      (if (unsafe-fl< in-circle 1.0)
                          (helper (unsafe-fx+ accumulator 1) next-iter)
                          (helper accumulator next-iter))))]))
-       (place-channel-put return-chan (helper 0 thread-iterations))
-       #;
-       (place-channel-put return-chan (unsafe-fl* 4.0 (unsafe-fl/ ;
-       (->fl (helper 0 thread-iterations)) ;
-       (->fl iterations))))
-       )
+       (place-channel-put return-chan (helper 0 thread-iterations)))
      (map sync (for/list ([i (distribute-extras iterations num-threads)])
                  (thread (λ () (run-thread-in-place (make-pseudo-random-generator) i))))))))
 
@@ -52,7 +47,6 @@
   (displayln (unsafe-fl* 4.0 (unsafe-fl/ ;
                               (->fl (collect-from-chan num-threads 0)) ;
                               (->fl iterations))))
-  #;(displayln (collect-from-chan num-threads 0.0))
   (displayln "Monte Carlo Pi completed successfully"))
 
 (module+ main

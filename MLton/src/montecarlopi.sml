@@ -1,5 +1,14 @@
 val WtoW31 = Word31.fromLargeWord o Word.toLargeWord
 
+fun distribute_extras total base = let
+    val q = Int.quot(total, base)
+    val r = Int.rem(total, base)
+    val ret_arr = Array.tabulate (base, fn _ => q)
+    val _ = Array.modifyi (fn (i, v) => if i < r then v + 1 else v ) ret_arr
+in
+    Array.vector ret_arr
+end
+
 fun montecarlopi iterations return_chan randomiser = let
     fun helper accumulator 0 _ = accumulator
       | helper accumulator iteration rando = let
@@ -16,9 +25,6 @@ fun montecarlopi iterations return_chan randomiser = let
               helper accumulator next_iter (Rand.random second_rand)
       end
 in
-    (* CML.send (return_chan,
-              (4.0 * ((real (helper 0 iterations randomiser)) /
-                      (real iterations)))) *)
     CML.send (return_chan, (helper 0 iterations randomiser))
 end
 
@@ -33,17 +39,15 @@ fun experiment (iterations : int) (num_threads : int) : unit = let
           collect_from_chan (count - 1) (sum + msg)
       end
 
-    (* The +1 ensures that this program doesn't do too few iterations *)
-    val iters_per_thread : int = Int.quot(iterations, num_threads) + 1
-    val _ = Vector.tabulate (num_threads,
-                             fn _ => CML.spawn (fn () =>
-                                                   montecarlopi iters_per_thread return_chan
-                                                                ((Rand.mkRandom (WtoW31 (MLton.Random.rand ()))) ())))
+    val iters_per_thread_vec = distribute_extras iterations num_threads
+    val _ = Vector.map (fn i => CML.spawn
+                                    (fn () => montecarlopi i return_chan
+                                                           ((Rand.mkRandom (WtoW31 (MLton.Random.rand ()))) ())))
+                       iters_per_thread_vec
 in
-    (* TextIO.print ((Real.toString ((collect_from_chan num_threads 0.0) /
-                                  (Real.fromInt num_threads))) ^ "\n"); *)
-    TextIO.print((Real.toString (4.0 * ((real (collect_from_chan num_threads 0)) /
-                                        (real iterations)))) ^ "\n");
+    TextIO.print((Real.toString (4.0 *
+                                 ((real (collect_from_chan num_threads 0)) /
+                                  (real iterations)))) ^ "\n");
     TextIO.print ("Monte Carlo Pi completed succesfully!\n")
 end
 
