@@ -1,6 +1,5 @@
 #lang racket
 
-(provide main)
 (require math/matrix math/array)
 
 (define max-val 256)
@@ -64,11 +63,13 @@
 
 ;***************************
 
-(define (main experiment-selection iterations size)
-  (let ([size-num (string->number size)]
-        [iter-num (string->number iterations)])
-    (match (string-downcase (string-trim experiment-selection))
-      ["vector" (vector iter-num size-num)]
-      ["matrix" (matrixops iter-num size-num)]
-      ["mixed" (mixed iter-num size-num)]))
-  (displayln (string-append experiment-selection " completed successfully")))
+(module+ main
+  (define cmd-params (current-command-line-arguments))
+  (define experiment-selection (vector-ref cmd-params 0))
+  (define iter-num (string->number (vector-ref cmd-params 1)))
+  (define size-num (string->number (vector-ref cmd-params 2)))
+  (case (string-downcase (string-trim experiment-selection))
+    [("vector") (vector iter-num size-num)]
+    [("matrix") (matrixops iter-num size-num)]
+    [("mixed") (mixed iter-num size-num)])
+  (displayln (string-append experiment-selection " completed successfully!")))
