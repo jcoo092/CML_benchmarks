@@ -82,7 +82,7 @@ spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 # iteration count.  These start at one, and are multiplied by 2**3 each
 # increase to derive the new number.
 # This variable is applied universally across the benchmarks.
-ITERATIONS = 1 8 64 512 4096 32768 #262144 2097152 16777216
+ITERATIONS = 1 8 64 512 4096 #32768 262144 2097152 16777216
 
 # For most programs, this is the number of threads to be used.  For 
 # Select Time it is instead the number of channels to use.
