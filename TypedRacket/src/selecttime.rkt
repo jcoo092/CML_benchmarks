@@ -1,23 +1,26 @@
-#lang racket/base
+#lang typed/racket/base
 
 (require racket/random racket/match)
-(require racket/place)
+(require racket/place racket/fixnum)
 
+(: create-place-chans (-> Nonnegative-Fixnum (Values (Listof Place-Channel) (Listof Place-Channel))))
 (define (create-place-chans length)
-  (for/fold ([rxes null] [txes null] #:result (values rxes txes))
+  (for/fold ([rxes : (Listof Place-Channel) null] [txes : (Listof Place-Channel) null] #:result (values rxes txes))
       ([iteration (in-range length)])
     (define-values (rx tx) (place-channel))
     (values (cons rx rxes) (cons tx txes))))
 
+(: place/sender (-> Nonnegative-Fixnum (Listof Place-Channel) Place))
 (define (place/sender iterations channels)
   (place/context
    c
    (begin
      (define choose (apply choice-evt channels))
-     (for ([i (in-range (/ iterations 2))])
+     (for ([i (in-range (fxquotient iterations 2))])
        (place-channel-put (random-ref channels) i)
        (sync choose)))))
 
+(: place/receiver (-> (Listof Place-Channel) Place))
 (define (place/receiver channels)
   (place/context
    c
@@ -30,6 +33,7 @@
 
      (receive-and-process))))
 
+(: experiment (-> Nonnegative-Fixnum Nonnegative-Fixnum Void))
 (define (experiment iterations num-channels)
   (let-values ([(ch-rxes ch-txes) (create-place-chans num-channels)])
     (let ([r (place/receiver ch-rxes)]
@@ -39,6 +43,6 @@
 
 (module+ main
   (define cmd-params (current-command-line-arguments))
-  (define iterations (string->number (vector-ref cmd-params 0)))
-  (define num-channels (string->number (vector-ref cmd-params 1)))
+  (define iterations (cast (string->number (vector-ref cmd-params 0)) Nonnegative-Fixnum))
+  (define num-channels (cast (string->number (vector-ref cmd-params 1)) Nonnegative-Fixnum))
   (experiment iterations num-channels))
