@@ -73,7 +73,7 @@ spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 # iteration count.  These start at one, and are multiplied by 2**3 each
 # increase to derive the new number.
 # This variable is applied universally across the benchmarks.
-ITERATIONS = 1 8 64 512 4096 32768 #262144 2097152 16777216
+ITERATIONS = 1 8 64 512 #4096 32768 #262144 2097152 16777216
 
 # For most programs, this is the number of threads to be used (it is
 # written this way because it is a parameter to hyperfine).  For Select
@@ -101,8 +101,8 @@ WHISPERS_OPTS ::= ring #kn grid
 
 benches_record_name = $(benches_dir)/$@_$$i
 bench_commstime : benches_record_name = $(benches_dir)/$@
-bench_linalg : benches_record_name = $(benches_dir)/$@_$$j_$$i
-bench_whispers : benches_record_name = $(benches_dir)/$@_$$j_$$i
+bench_linalg : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
+bench_whispers : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
 
 # Since this part will be common to all benchmarking invocations
 # I define it as a separate variable
@@ -123,6 +123,9 @@ bench_whispers : iter_command = $(hypw3) --parameter-list num_threads "$(call sp
 
 define for_iters =
 	for i in $(ITERATIONS); do\
+		echo $$j = $$j;\
+		echo $$i = $$i;\
+		echo benches_record_name = $(benches_record_name);\
 		$(iter_command);\
 	done
 endef
@@ -133,7 +136,7 @@ bench_all: $(bench_names)
 # at least, it only takes one parameter, meaning that hyperfine
 # can handle everything without resorting to an external for loop.
 bench_commstime: commstime
-	@echo benches_record_name = $(benches_record_name)
+	echo benches_record_name = $(benches_record_name)
 	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$(exes_dir)/$< {num_iters}"
 
 # Note that this one is different from most of the others in that it
@@ -146,7 +149,7 @@ bench_linalg: linalg
 		$(for_iters);\
 	done
 
-bench_montecarlopi : THREADS = 2 16 128 1024 8192
+#bench_montecarlopi : THREADS = 2 16 128 1024 8192
 bench_montecarlopi: montecarlopi
 	$(for_iters)
 

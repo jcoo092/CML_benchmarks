@@ -111,8 +111,8 @@ WHISPERS_OPTS ::= ring #kn grid
 
 benches_record_name = $(benches_dir)/$@_$$i
 bench_commstime : benches_record_name = $(benches_dir)/$@
-bench_linalg : benches_record_name = $(benches_dir)/$@_$$j_$$i
-bench_whispers : benches_record_name = $(benches_dir)/$@_$$j_$$i
+bench_linalg : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
+bench_whispers : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
 
 # Since this part will be common to all benchmarking invocations
 # I define it as a separate variable

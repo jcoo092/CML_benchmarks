@@ -27,9 +27,9 @@
 (: vector (-> Nonnegative-Fixnum Nonnegative-Fixnum Void))
 (define (vector iterations size)
 
-  (: initvector1 (Matrix Nonnegative-Fixnum))
+  ;(: initvector1 (Matrix Nonnegative-Fixnum))
   (define initvector1 (build-matrix 1 size (λ (a b) (rando))))
-  (: initvector2 (Matrix Nonnegative-Fixnum))
+  ;(: initvector2 (Matrix Nonnegative-Fixnum))
   (define initvector2 (build-matrix 1 size (λ (a b) (rando))))
 
   (: process-vectors (-> Nonnegative-Fixnum (Matrix Nonnegative-Fixnum) (Matrix Nonnegative-Fixnum) Void))

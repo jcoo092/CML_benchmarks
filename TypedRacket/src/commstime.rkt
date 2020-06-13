@@ -5,8 +5,8 @@
                                         ; Simply sends what it receives.  This doesn't need to be a place creator, since it should re-use prefix's place.  I think.
 (: ID (-> Place-Channel Place-Channel Void))
 (define (ID in out)
-  ((place-channel-put out (place-channel-get in))
-   (ID in out)))
+  (place-channel-put out (place-channel-get in))
+  (ID in out))
 
 (: run-prefix (-> Integer Place-Channel Place-Channel Void))
 (define (run-prefix N in out)
@@ -20,9 +20,9 @@
    c
    (run-prefix N in out)))
 
-(: run-successor (-> (Place-Channel Integer) Place-Channel Void))
+(: run-successor (-> Place-Channel Place-Channel Void))
 (define (run-successor in out)
-  (place-channel-put out (add1 (place-channel-get in)))
+  (place-channel-put out (add1 (assert (place-channel-get in) fixnum?)))
   (run-successor in out))
 
                                         ; Sends out what it receives plus one
@@ -65,5 +65,5 @@
 
 (module+ main
   (define cmd-params (current-command-line-arguments))
-  (define iterations (string->number (vector-ref cmd-params 0)))
+  (define iterations (cast (string->number (vector-ref cmd-params 0)) Nonnegative-Fixnum))
   (experiment iterations))
