@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require racket/list racket/string racket/function racket/match racket/fixnum)
+(require racket/list racket/string racket/fixnum)
 (require racket/place racket/future)
 ;(require srfi/43)
 
@@ -107,12 +107,13 @@ ret-vec)
 
 (: interpose (-> Place-Channel Place-Channel Void))
 (define (interpose rx tx)
-  (match (place-channel-get rx)
-    [0 (void)]
-    [i (begin
-         (assert i integer?)
-         (place-channel-put tx (sub1 i))
-         (interpose rx tx))]))
+  (let ([i (place-channel-get rx)])
+    (case i
+      [(0) (void)]
+      [else (begin
+              (assert i integer?)
+              (place-channel-put tx (sub1 i))
+              (interpose rx tx))])))
 
 (: ring/place (-> Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Void))
 (define (ring/place iterations size num-places)
