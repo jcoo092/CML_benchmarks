@@ -190,7 +190,7 @@ events2))))))
 
                                         ;***************************
 
-(define (get-numerical-param-from-vec-or-default default vec param-pos)
+#;(define (get-numerical-param-from-vec-or-default default vec param-pos)
   (if (< param-pos (vector-length vec))
       (string->number (vector-ref vec param-pos))
       default))
