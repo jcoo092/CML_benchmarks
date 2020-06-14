@@ -1,32 +1,40 @@
-#lang racket/base
+#lang typed/racket/base
 
-(require racket/list racket/string racket/function racket/match)
+(require racket/list racket/string racket/function racket/match racket/fixnum)
 (require racket/place racket/future)
-(require srfi/43)
+;(require srfi/43)
 
+(: chans-list (All (A) (-> Integer (Listof (Channelof A)))))
 (define (chans-list size)
-  (build-list size (λ (i) (make-channel))))
+  (build-list size (λ ([i : Index]) : (Channelof A)  (make-channel))))
 
+(: chans-vector (All (A) (-> Integer (Vectorof (Channelof A)))))
 (define (chans-vector size)
-  (build-vector size (λ (i) (make-channel))))
+  (build-vector size (λ ([i : Index]) : (Channelof A) (make-channel))))
 
+(: distribute-extra-threads (-> Nonnegative-Fixnum Nonnegative-Fixnum (Vectorof Nonnegative-Fixnum)))
 (define (distribute-extra-threads total-threads base)
+  (: ret-vec (Vectorof Nonnegative-Fixnum))
   (define ret-vec (make-vector base (quotient total-threads base)))
   (define leftovers (remainder total-threads base))
   (for ([i (in-range leftovers)])
     (let ([curr-val (vector-ref ret-vec i)])
-      (vector-set! ret-vec i (add1 curr-val))))
+      (vector-set! ret-vec i (fx+ 1 curr-val))))
   ret-vec)
 
+(: create-place-chans (-> Nonnegative-Fixnum (Values (Listof Place-Channel) (Listof Place-Channel))))
 (define (create-place-chans length)
-  (for/fold ([rxes null] [txes null] #:result (values rxes txes))
+  (for/fold ([rxes : (Listof Place-Channel) null] [txes : (Listof Place-Channel) null] #:result (values rxes txes))
       ([iteration (in-range length)])
     (define-values (rx tx) (place-channel))
     (values (cons rx rxes) (cons tx txes))))
 
+(: create-place-chans-vector (-> Nonnegative-Fixnum (Values (Vectorof Place-Channel) (Vectorof Place-Channel))))
 (define (create-place-chans-vector length)
-  (define rxes (make-vector length))
-  (define txes (make-vector length))
+  (: rxes (Vectorof Place-Channel))
+  (define rxes (cast (make-vector length) (Vectorof Place-Channel)))
+  (: txes (Vectorof Place-Channel))
+  (define txes (cast (make-vector length) (Vectorof Place-Channel)))
   (for ([i (in-range length)])
     (let-values ([(rx tx) (place-channel)])
       (vector-set! rxes i rx)
@@ -34,6 +42,7 @@
   (values rxes txes))
 
                                         ; This assumes that the permutation size is smaller than the length of the list.
+(: permute-list (All (A) (-> (Listof A) Nonnegative-Fixnum  (Listof A))))
 (define (permute-list l permutation-size)
   (define-values (new-back new-front) (split-at l permutation-size))
   (append new-front new-back))
@@ -69,13 +78,15 @@ ret-vec)
 
                                         ;***************************
                                         ;********* Ring ************
-
+(: rcv-and-fwd (All (A) (-> (Channelof A) (Channelof A) Void)))
 (define (rcv-and-fwd in-ch out-ch)
   (channel-put out-ch (channel-get in-ch))
   (rcv-and-fwd in-ch out-ch))
 
+(: run-place (-> Place-Channel Place-Channel (Channelof Nonnegative-Fixnum) (Channelof Nonnegative-Fixnum) Void))
 (define (run-place rx tx start-chan end-chan)
-  (let ([msg (place-channel-get rx)])
+  (let ([msg (cast (place-channel-get rx) Nonnegative-Fixnum)])
+    (assert msg fixnum?)
     (channel-put start-chan msg)
     (let ([msg-again (channel-get end-chan)])
       (place-channel-put tx msg-again)
@@ -83,6 +94,7 @@ ret-vec)
           (void)
           (run-place rx tx start-chan end-chan)))))
 
+(: start-place (-> Nonnegative-Fixnum Place-Channel Place-Channel Place))
 (define (start-place num-threads rx tx)
   (place/context
    c
@@ -93,16 +105,19 @@ ret-vec)
      (thread (λ () (rcv-and-fwd (vector-ref ch-vec (sub1 num-threads)) end-chan)))
      (run-place rx tx (vector-ref ch-vec 0) end-chan))))
 
+(: interpose (-> Place-Channel Place-Channel Void))
 (define (interpose rx tx)
   (match (place-channel-get rx)
     [0 (void)]
     [i (begin
+         (assert i integer?)
          (place-channel-put tx (sub1 i))
          (interpose rx tx))]))
 
+(: ring/place (-> Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Void))
 (define (ring/place iterations size num-places)
   (define threads-per-place (vector->list (distribute-extra-threads size num-places)))
-  (define-values (rxes txes) (create-place-chans (add1 num-places)))
+  (define-values (rxes txes) (create-place-chans (fx+ 1 num-places)))
   (define perm-txes (permute-list txes 1))
   (let ([places (map (λ (n r t) (start-place n r t)) threads-per-place
                      (list-tail rxes 1) (list-tail perm-txes 1))])
@@ -189,18 +204,18 @@ events2))))))
 (for-each thread-wait threads))|#
 
                                         ;***************************
-
+(: get-numerical-param-from-vec-or-default (-> Nonnegative-Fixnum (Vectorof String) Index Nonnegative-Fixnum))
 (define (get-numerical-param-from-vec-or-default default vec param-pos)
   (if (< param-pos (vector-length vec))
-      (string->number (vector-ref vec param-pos))
+      (cast (string->number (vector-ref vec param-pos)) Nonnegative-Fixnum)
       default))
 
 (module+ main
   (define default-width 50)
   (define cmd-params (current-command-line-arguments))
   (let* ([experiment-selection (string-trim (vector-ref cmd-params 0))]
-         [iterations (string->number (vector-ref cmd-params 1))]
-         [size-num (string->number (vector-ref cmd-params 2))]
+         [iterations (cast (string->number (vector-ref cmd-params 1)) Nonnegative-Fixnum)]
+         [size-num (cast (string->number (vector-ref cmd-params 2)) Nonnegative-Fixnum)]
          [num-places (processor-count)])
     (if (< size-num num-places)
         (displayln (format "The number of threads called for is too small to test the capabilities of this program.  Please request a larger number.  For this computer, the minimum is ~v." num-places) (current-error-port))

@@ -2,7 +2,8 @@
 
 (require racket/match racket/fixnum racket/flonum)
 (require racket/place racket/future)
-(require/typed racket/unsafe/ops [unsafe-fxvector-length (FxVector -> Fixnum)])
+(require racket/unsafe/ops)
+
 
 (: distribute-extras (-> Nonnegative-Fixnum Nonnegative-Fixnum FxVector))
 (define (distribute-extras total base)
