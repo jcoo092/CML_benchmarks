@@ -217,16 +217,13 @@ events2))))))
   (let* ([experiment-selection (string-trim (vector-ref cmd-params 0))]
          [iterations (cast (string->number (vector-ref cmd-params 1)) Nonnegative-Fixnum)]
          [size-num (cast (string->number (vector-ref cmd-params 2)) Nonnegative-Fixnum)]
-         [num-places (processor-count)])
-    (if (< size-num num-places)
-        (displayln (format "The number of threads called for is too small to test the capabilities of this program.  Please request a larger number.  For this computer, the minimum is ~v." num-places) (current-error-port))
-        (begin
-          (case (string-downcase experiment-selection)
-            [("ring") (ring/place iterations size-num num-places)]
-            #;[("kn") (kn iterations size-num num-places)]
-            #;
-            [("grid") (begin                  ; ; ; ;
-            (define (gnp) (curry get-numerical-param-from-vec-or-default ; ; ; ;
-            default-width cmd-params))        ; ; ; ;
-            (grid iterations (gnp 3) (gnp 4) num-places))])
-          (displayln (string-append experiment-selection " of Whispers completed successfully"))))))
+	 [num-places (min size-num (cast (processor-count) Nonnegative-Fixnum))])
+    (case (string-downcase experiment-selection)
+      [("ring") (ring/place iterations size-num num-places)]
+      #;[("kn") (kn iterations size-num num-places)]
+      #;
+      [("grid") (begin                  ; ; ; ; ; ;
+      (define (gnp) (curry get-numerical-param-from-vec-or-default ; ; ; ; ; ;
+      default-width cmd-params))        ; ; ; ; ; ;
+      (grid iterations (gnp 3) (gnp 4) num-places))])
+    (displayln (string-append experiment-selection " of Whispers completed successfully"))))
