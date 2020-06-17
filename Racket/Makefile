@@ -58,7 +58,7 @@ $(names) : % : $(exes_dir)/%
 $(rkt_zo_names) : $(compiled_dir)/%_rkt.zo : $(src_dir)/%.rkt
 	$(racket_make)
 
-$(exe_names) : $(exes_dir)/% : $(compiled_dir)/%_rkt.zo
+$(exe_names) : $(exes_dir)/% : $(compiled_dir)/%_rkt.zo | $(exes_dir)
 	$(racket_compile)
 
 ##################################################
@@ -82,7 +82,7 @@ spaces-to-commas = $(subst $(space),$(comma),$(strip $(1)))
 # iteration count.  These start at one, and are multiplied by 2**3 each
 # increase to derive the new number.
 # This variable is applied universally across the benchmarks.
-ITERATIONS = 1 8 64 512 4096 32768 #262144 2097152 16777216
+ITERATIONS = 1 64 4096 #262144 16777216
 
 # For most programs, this is the number of threads to be used.  For 
 # Select Time it is instead the number of channels to use.
@@ -99,7 +99,7 @@ WARMUPS = 2
 # chosen pretty much entirely arbitrarily, but mostly biased towards
 # smaller vectors & matrices, as I expect those to be more important
 # for me later on.
-VECTORS = 2 3 4 8 16 32 128 #512 2048 65536 524288
+VECTORS = 2 3 4 8 16 32 128 #512 2048 65536
 
 # Options for the linear algebra program
 LINALG_OPTS ::= vector matrix mixed
@@ -142,7 +142,7 @@ bench_all: $(bench_names)
 # bench_commstime works differently from the others, since, at present
 # at least, it only takes one parameter, meaning that hyperfine
 # can handle everything without resorting to an external for loop.
-bench_commstime: $(exes_dir)/commstime
+bench_commstime: $(exes_dir)/commstime | $(benches_dir)
 	@echo benches_record_name = $(benches_record_name)
 	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$< {num_iters}"
 
@@ -151,23 +151,23 @@ bench_commstime: $(exes_dir)/commstime
 # as well as wrapping for_iters with another for loop.  Unfortunately,
 # to get things to work, I need to use a variable named j in the loop
 # wrapping the one which uses the variable i...
-bench_linalg: $(exes_dir)/linalg
+bench_linalg: $(exes_dir)/linalg | $(benches_dir)
 	for j in $(LINALG_OPTS); do\
 		$(for_iters);\
 	done
 
 bench_montecarlopi : THREADS = 2 16 128 1024 8192
-bench_montecarlopi: $(exes_dir)/montecarlopi
+bench_montecarlopi: $(exes_dir)/montecarlopi | $(benches_dir)
 	$(for_iters)
 
-bench_selecttime: $(exes_dir)/selecttime
+bench_selecttime: $(exes_dir)/selecttime | $(benches_dir)
 	$(for_iters)
 
-bench_spawn: $(exes_dir)/spawn
+bench_spawn: $(exes_dir)/spawn | $(benches_dir)
 	$(for_iters)
 
 # This has the same issues as bench_linalg - see the comment there.
-bench_whispers: $(exes_dir)/whispers
+bench_whispers: $(exes_dir)/whispers | $(benches_dir)
 	@echo benches_record_name = $(benches_record_name)
 	for j in $(WHISPERS_OPTS); do\
 		$(for_iters); \
@@ -192,3 +192,15 @@ clean_bench:
 clean_all:
 	@make clean
 	@make clean_bench
+	
+##################################################
+
+# Rules to ensure that the required sub-directories are in fact extant.
+# This approach is based upon answers to the following Stack Overflow
+# question:  https://stackoverflow.com/q/1950926
+
+$(exes_dir):
+	mkdir -p $(exes_dir)
+	
+$(benches_dir):
+	mkdir -p $(benches_dir)
