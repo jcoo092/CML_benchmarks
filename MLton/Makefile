@@ -46,7 +46,7 @@ all: $(names)
 $(names) : % : $(exes_dir)/%
 	make $(exes_dir)/$@
 
-$(exe_names) : $(exes_dir)/% : $(mlbs_dir)/%.mlb $(src_dir)/%.sml
+$(exe_names) : $(exes_dir)/% : $(mlbs_dir)/%.mlb $(src_dir)/%.sml | $(exes_dir)
 	$(mlton_compile)
 
 #$(names) : % : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
@@ -132,7 +132,7 @@ bench_all: $(bench_names)
 # bench_commstime works differently from the others, since, at present
 # at least, it only takes one parameter, meaning that hyperfine
 # can handle everything without resorting to an external for loop.
-bench_commstime: commstime
+bench_commstime: commstime | $(benches_dir)
 	@echo benches_record_name = $(benches_record_name)
 	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$(exes_dir)/$< {num_iters}"
 
@@ -141,23 +141,23 @@ bench_commstime: commstime
 # as well as wrapping for_iters with another for loop.  Unfortunately,
 # to get things to work, I need to use a variable named j in the loop
 # wrapping the one which uses the variable i...
-bench_linalg: linalg
+bench_linalg: linalg | $(benches_dir)
 	for j in $(LINALG_OPTS); do\
 		$(for_iters);\
 	done
 
 bench_montecarlopi : THREADS = 2 16 128 1024 8192
-bench_montecarlopi: montecarlopi
+bench_montecarlopi: montecarlopi | $(benches_dir)
 	$(for_iters)
 
-bench_selecttime: selecttime
+bench_selecttime: selecttime | $(benches_dir)
 	$(for_iters)
 
-bench_spawn: spawn
+bench_spawn: spawn | $(benches_dir)
 	$(for_iters)
 
 # This has the same issues as bench_linalg - see the comment there.
-bench_whispers: whispers
+bench_whispers: whispers | $(benches_dir)
 	@echo benches_record_name = $(benches_record_name)
 	for j in $(WHISPERS_OPTS); do\
 		$(for_iters); \
@@ -182,3 +182,16 @@ clean_bench:
 clean_all:
 	@make clean
 	@make clean_bench
+	
+##################################################
+
+# Rules to ensure that the required sub-directories are in fact extant.
+# This approach is based upon answers to the following Stack Overflow
+# question:  https://stackoverflow.com/q/1950926
+
+$(exes_dir):
+	mkdir -p $(exes_dir)
+	
+$(benches_dir):
+	mkdir -p $(benches_dir)
+	
