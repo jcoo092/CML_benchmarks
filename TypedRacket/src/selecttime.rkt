@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require racket/random racket/match)
+(require racket/random)
 (require racket/place racket/fixnum)
 
 (: create-place-chans (-> Nonnegative-Fixnum (Values (Listof Place-Channel) (Listof Place-Channel))))

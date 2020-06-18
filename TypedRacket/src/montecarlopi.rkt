@@ -1,8 +1,7 @@
 #lang typed/racket/base
 
-(require racket/match racket/fixnum racket/flonum)
+(require racket/fixnum racket/flonum)
 (require racket/place racket/future)
-(require racket/unsafe/ops)
 
 
 (: distribute-extras (-> Nonnegative-Fixnum Nonnegative-Fixnum (Vectorof Nonnegative-Fixnum)))
@@ -31,11 +30,11 @@
                          (helper (fx+ accumulator 1) next-iter)
                          (helper accumulator next-iter))))))
        (place-channel-put return-chan (helper 0 thread-iterations)))
-     (map sync (for/list ([i (distribute-extras iterations num-threads)])
+     (for-each sync (for/list ([i (distribute-extras iterations num-threads)])
                  (thread (λ () (run-thread-in-place (make-pseudo-random-generator) i))))))))
 
 (: experiment (-> Nonnegative-Fixnum Nonnegative-Fixnum Nonnegative-Fixnum Void))
-(define (experiment iterations num-threads num-cores)
+(define (experiment iterations num-cores num-threads)
   (define threads-per-place-vec (distribute-extras num-threads num-cores))
   (define iters-per-place-vec (assert (distribute-extras iterations num-cores) vector?))
   (define-values (rx-ch tx-ch) (place-channel))
@@ -60,4 +59,4 @@
   (define iterations (cast (string->number (vector-ref cmd-params 0)) Nonnegative-Fixnum))
   (define num-threads (cast (string->number (vector-ref cmd-params 1)) Nonnegative-Fixnum))
   (define num-cores (min num-threads (cast (processor-count) Nonnegative-Fixnum)))
-  (experiment iterations num-threads num-cores))
+  (experiment iterations num-cores num-threads))

@@ -20,19 +20,20 @@
    (for ([i (in-range iterations)])
        (let ([threads-list (for/list ([t (in-range num-threads)])
                              (thread (λ () (child i id t))))])
-         (map thread-wait threads-list)))))
+         (for-each thread-wait threads-list)))))
 
-(define (experiment iterations num-threads)
-  (define num-cores (processor-count))
+(define (experiment iterations num-cores num-threads)
+  #;(define num-cores (processor-count))
   (define threads-per-place (distribute-extras num-threads num-cores))
   (let ([places (for/list ([i (in-range num-cores)]
                            [j (in-vector threads-per-place)])
-                  (child/place iterations i ))])
-    (map place-wait places)))
+                  (child/place iterations i j))])
+    (for-each place-wait places)))
 
 (module+ main
   (define cmd-params (current-command-line-arguments))
-  (define iterations (vector-ref cmd-params 0))
-  (define num-threads (vector-ref cmd-params 1))
-  (experiment (string->number iterations) (string->number num-threads))
+  (define iterations (string->number (vector-ref cmd-params 0)))
+  (define num-threads (string->number (vector-ref cmd-params 1)))
+  (define num-cores (min num-threads (processor-count)))
+  (experiment iterations num-cores num-threads)
   (displayln "Spawn completed successfully"))

@@ -123,9 +123,6 @@ bench_whispers : iter_command = $(hypw3) --parameter-list num_threads "$(call sp
 
 define for_iters =
 	for i in $(ITERATIONS); do\
-		echo $$j = $$j;\
-		echo $$i = $$i;\
-		echo benches_record_name = $(benches_record_name);\
 		$(iter_command);\
 	done
 endef
@@ -136,7 +133,6 @@ bench_all: $(bench_names)
 # at least, it only takes one parameter, meaning that hyperfine
 # can handle everything without resorting to an external for loop.
 bench_commstime: commstime | $(benches_dir)
-	@echo benches_record_name = $(benches_record_name)
 	$(hypw3) --parameter-list num_iters "$(call spaces-to-commas,$(ITERATIONS))" "$(exes_dir)/$< {num_iters}"
 
 # Note that this one is different from most of the others in that it
@@ -161,7 +157,6 @@ bench_spawn: spawn | $(benches_dir)
 
 # This has the same issues as bench_linalg - see the comment there.
 bench_whispers: whispers | $(benches_dir)
-	@echo benches_record_name = $(benches_record_name)
 	for j in $(WHISPERS_OPTS); do\
 		$(for_iters); \
 	done

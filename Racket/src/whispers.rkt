@@ -1,8 +1,8 @@
 #lang racket/base
 
-(require racket/list racket/string racket/function racket/match)
+(require racket/list racket/string racket/function)
 (require racket/place racket/future)
-(require srfi/43)
+#;(require srfi/43)
 
 (define (chans-list size)
   (build-list size (λ (i) (make-channel))))
@@ -93,12 +93,20 @@ ret-vec)
      (thread (λ () (rcv-and-fwd (vector-ref ch-vec (sub1 num-threads)) end-chan)))
      (run-place rx tx (vector-ref ch-vec 0) end-chan))))
 
-(define (interpose rx tx)
+#;(define (interpose rx tx)
   (match (place-channel-get rx)
     [0 (void)]
     [i (begin
          (place-channel-put tx (sub1 i))
-         (interpose rx tx))]))
+(interpose rx tx))]))
+
+(define (interpose rx tx)
+  (let ([i (place-channel-get rx)])
+    (case i
+      [(0) (void)]
+      [else (begin
+              (place-channel-put tx (sub1 i))
+              (interpose rx tx))])))
 
 (define (ring/place iterations size num-places)
   (define threads-per-place (vector->list (distribute-extra-threads size num-places)))
@@ -201,7 +209,7 @@ events2))))))
   (let* ([experiment-selection (string-trim (vector-ref cmd-params 0))]
          [iterations (string->number (vector-ref cmd-params 1))]
          [size-num (string->number (vector-ref cmd-params 2))]
-         [num-places (processor-count)])
+         [num-places (min size-num (processor-count))])
     (if (< size-num num-places)
         (displayln (format "The number of threads called for is too small to test the capabilities of this program.  Please request a larger number.  For this computer, the minimum is ~v." num-places) (current-error-port))
         (begin

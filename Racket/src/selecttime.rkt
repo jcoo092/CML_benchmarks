@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/random racket/match)
+(require racket/random)
 (require racket/place)
 
 (define (create-place-chans length)
