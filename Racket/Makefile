@@ -161,6 +161,7 @@ bench_linalg:
 	make bench_linalg1
 	make bench_linalg2
 
+bench_linalg1 : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
 bench_linalg1 : iter_command = $(hypw3) --parameter-list vecs_size "$(call spaces-to-commas,$(VECTORS))" "$< $$j $$i {vecs_size}"
 bench_linalg1 : VECTORS = 2 3 4 8 16 32
 bench_linalg1: $(exes_dir)/linalg | $(benches_dir)
@@ -168,6 +169,7 @@ bench_linalg1: $(exes_dir)/linalg | $(benches_dir)
 		$(for_iters);\
 	done
 
+bench_linalg2 : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
 bench_linalg2 : iter_command = $(hypw3) --parameter-list vecs_size "$(call spaces-to-commas,$(VECTORS))" "$< $$j $$i {vecs_size}"
 bench_linalg2 : VECTORS = 128
 bench_linalg2 : ITERATIONS = 1 64
@@ -210,6 +212,7 @@ bench_whispers: $(exes_dir)/whispers | $(benches_dir)
 	make bench_whispers1
 	make bench_whispers2
 
+bench_whispers1 : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
 bench_whispers1 : THREADS = 2 16 128 1024
 bench_whispers1 : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$j $$i {num_threads}"
 bench_whispers1: $(exes_dir)/whispers | $(benches_dir)
@@ -217,6 +220,7 @@ bench_whispers1: $(exes_dir)/whispers | $(benches_dir)
 		$(for_iters); \
 	done
 
+bench_whispers2 : benches_record_name = $(benches_dir)/$@\_$$j\_$$i
 bench_whispers2 : THREADS = 8192
 bench_whispers2 : ITERATIONS = 1 64
 bench_whispers2 : iter_command = $(hypw3) --parameter-list num_threads "$(call spaces-to-commas,$(THREADS))" "$< $$j $$i {num_threads}"
