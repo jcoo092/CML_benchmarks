@@ -24,7 +24,7 @@
    (begin
      (define choose (apply choice-evt channels))
      (define (receive-and-process)
-       #;(printf "Received message ~v~n" (sync choose))
+       (sync choose)
        (place-channel-put (random-ref channels) 'ACK)
        (receive-and-process))
 
