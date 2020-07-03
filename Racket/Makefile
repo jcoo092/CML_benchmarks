@@ -19,14 +19,16 @@ src_dir ::= ./src
 compiled_dir ::= $(src_dir)/compiled
 exes_dir ::= ./executables
 benches_dir ::= ./benchmarks
+times_dir ::= ./times
 
 # List the names of each file
 names ::= commstime linalg montecarlopi selecttime spawn whispers
 rkt_zo_names ::= $(foreach name, $(names), $(compiled_dir)/$(name)_rkt.zo)
 exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
 bench_names ::= $(foreach name, $(names), bench_$(name))
+times_names ::= $(foreach name, $(names), times_$(name))
 
-.PHONY: all bench_all $(bench_names) clean_all clean clean_bench
+.PHONY: all bench_all $(bench_names) clean_all clean clean_bench times_all $(times_names)
 
 ##################################################
 
@@ -228,6 +230,40 @@ bench_whispers2: $(exes_dir)/whispers | $(benches_dir)
 	for j in $(WHISPERS_OPTS); do\
 		$(for_iters); \
 	done
+	
+##################################################
+
+# Some basic scripting to use `/usr/bin/time` to get
+# an estimate of the total memory used
+
+times_all: $(times_names)
+
+times_command = /usr/bin/time -v -o $(times_dir)/
+
+times_commstime: $(exes_dir)/commstime | $(times_dir)
+	$(times_command)commstime.txt $< 4096
+	
+times_linalg: $(exes_dir)/linalg | $(times_dir)
+	$(times_command)linalg_matrix_64_128.txt $< matrix 64 128
+	$(times_command)linalg_matrix_4096_32.txt $< matrix 4096 32
+	$(times_command)linalg_mixed_64_128.txt $< mixed 64 128
+	$(times_command)linalg_mixed_4096_32.txt $< mixed 4096 32
+	$(times_command)linalg_vector_64_128.txt $< vector 64 128
+	$(times_command)linalg_vector_4096_32.txt $< vector 4096 32
+	
+times_montecarlopi: $(exes_dir)/montecarlopi | $(times_dir)
+	$(times_command)montecarlopi.txt $< 4096 8192
+	
+times_selecttime: $(exes_dir)/selecttime | $(times_dir)
+	$(times_command)selecttime.txt $< 4096 8192
+	
+times_spawn: $(exes_dir)/spawn | $(times_dir)
+	$(times_command)spawn_64_128.txt $< 64 8192
+	$(times_command)spawn_4096_32.txt $< 4096 1024
+	
+times_whispers: $(exes_dir)/whispers | $(times_dir)
+	$(times_command)whispers_ring_64_128.txt $< ring 64 8192
+	$(times_command)whispers_ring_4096_32.txt $< ring 4096 1024
 
 ##################################################
 
@@ -244,10 +280,17 @@ clean:
 clean_bench:
 	-rm $(benches_dir)/*
 	
+# Remove all the benchmarking output files.  This is kept separate from the 
+# `clean` command above, since it might not be desirable to remove them at the
+# same time at the other output files.
+clean_times:
+	-rm $(times_dir)/*
+	
 # A convenience command to execute both of the above cleaning commands
 clean_all:
 	@make clean
 	@make clean_bench
+	@make clean_times
 
 ##################################################
 
@@ -260,3 +303,6 @@ $(exes_dir):
 	
 $(benches_dir):
 	@mkdir -p $(benches_dir)
+	
+$(times_dir):
+	mkdir -p $(times_dir)
