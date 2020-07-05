@@ -85,4 +85,4 @@ ml*.out
 /executables/
 /compiled/
 /benchmarks/
-times/
+/memory/

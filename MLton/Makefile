@@ -15,15 +15,15 @@ mlbs_dir ::= ./mlbs
 src_dir ::= ./src
 exes_dir ::= ./executables
 benches_dir ::= ./benchmarks
-times_dir ::= ./times
+memory_dir ::= ./memory
 
 # List the names of each file
 names ::= commstime linalg montecarlopi selecttime spawn whispers
 exe_names ::= $(foreach name, $(names), $(exes_dir)/$(name))
 bench_names ::= $(foreach name, $(names), bench_$(name))
-times_names ::= $(foreach name, $(names), times_$(name))
+memory_names ::= $(foreach name, $(names), memory_$(name))
 
-.PHONY: all bench_all $(bench_names) clean_all clean clean_bench times_all $(times_names)
+.PHONY: all bench_all $(bench_names) clean_all clean clean_bench memory_all $(memory_names)
 
 ##################################################
 
@@ -168,34 +168,34 @@ bench_whispers: whispers | $(benches_dir)
 # Some basic scripting to use `/usr/bin/time` to get
 # an estimate of the total memory used
 
-times_all: $(times_names)
+memory_all: $(memory_names)
 
-times_command = /usr/bin/time -v -o $(times_dir)/
+memory_command = /usr/bin/time -v -o $(memory_dir)/
 
-times_commstime: commstime | $(times_dir)
-	$(times_command)commstime.txt $(exes_dir)/$< 4096
+memory_commstime: commstime | $(memory_dir)
+	$(memory_command)commstime.txt $(exes_dir)/$< 4096
 	
-times_linalg: linalg | $(times_dir)
-	$(times_command)linalg_matrix_64_128.txt $(exes_dir)/$< matrix 64 128
-	$(times_command)linalg_matrix_4096_32.txt $(exes_dir)/$< matrix 4096 32
-	$(times_command)linalg_mixed_64_128.txt $(exes_dir)/$< mixed 64 128
-	$(times_command)linalg_mixed_4096_32.txt $(exes_dir)/$< mixed 4096 32
-	$(times_command)linalg_vector_64_128.txt $(exes_dir)/$< vector 64 128
-	$(times_command)linalg_vector_4096_32.txt $(exes_dir)/$< vector 4096 32
+memory_linalg: linalg | $(memory_dir)
+	$(memory_command)linalg_matrix_64_128.txt $(exes_dir)/$< matrix 64 128
+	$(memory_command)linalg_matrix_4096_32.txt $(exes_dir)/$< matrix 4096 32
+	$(memory_command)linalg_mixed_64_128.txt $(exes_dir)/$< mixed 64 128
+	$(memory_command)linalg_mixed_4096_32.txt $(exes_dir)/$< mixed 4096 32
+	$(memory_command)linalg_vector_64_128.txt $(exes_dir)/$< vector 64 128
+	$(memory_command)linalg_vector_4096_32.txt $(exes_dir)/$< vector 4096 32
 	
-times_montecarlopi: montecarlopi | $(times_dir)
-	$(times_command)montecarlopi.txt $(exes_dir)/$< 4096 8192
+memory_montecarlopi: montecarlopi | $(memory_dir)
+	$(memory_command)montecarlopi.txt $(exes_dir)/$< 4096 8192
 	
-times_selecttime: selecttime | $(times_dir)
-	$(times_command)selecttime.txt $(exes_dir)/$< 4096 8192
+memory_selecttime: selecttime | $(memory_dir)
+	$(memory_command)selecttime.txt $(exes_dir)/$< 4096 8192
 	
-times_spawn: spawn | $(times_dir)
-	$(times_command)spawn_64_128.txt $(exes_dir)/$< 64 8192
-	$(times_command)spawn_4096_32.txt $(exes_dir)/$< 4096 1024
+memory_spawn: spawn | $(memory_dir)
+	$(memory_command)spawn_64_128.txt $(exes_dir)/$< 64 8192
+	$(memory_command)spawn_4096_32.txt $(exes_dir)/$< 4096 1024
 	
-times_whispers: whispers | $(times_dir)
-	$(times_command)whispers_ring_64_128.txt $(exes_dir)/$< ring 64 8192
-	$(times_command)whispers_ring_4096_32.txt $(exes_dir)/$< ring 4096 1024
+memory_whispers: whispers | $(memory_dir)
+	$(memory_command)whispers_ring_64_128.txt $(exes_dir)/$< ring 64 8192
+	$(memory_command)whispers_ring_4096_32.txt $(exes_dir)/$< ring 4096 1024
 
 ##################################################
 
@@ -215,14 +215,14 @@ clean_bench:
 # Remove all the benchmarking output files.  This is kept separate from the 
 # `clean` command above, since it might not be desirable to remove them at the
 # same time at the other output files.
-clean_times:
-	-rm $(times_dir)/*
+clean_memory:
+	-rm $(memory_dir)/*
 	
 # A convenience command to execute both of the above cleaning commands
 clean_all:
 	@make clean
 	@make clean_bench
-	@make clean_times
+	@make clean_memory
 	
 ##################################################
 
@@ -236,5 +236,5 @@ $(exes_dir):
 $(benches_dir):
 	mkdir -p $(benches_dir)
 	
-$(times_dir):
-	mkdir -p $(times_dir)
+$(memory_dir):
+	mkdir -p $(memory_dir)

@@ -67,4 +67,4 @@ $RECYCLE.BIN/
 ### Extra folders to be ignored
 benchmarks/
 executables/
-times/
+memory/
