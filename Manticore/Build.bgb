@@ -1,0 +1,3 @@
+(bg-build
+ :name  "CML_Benchmarks"
+ :shell "nice -n5 make all")
