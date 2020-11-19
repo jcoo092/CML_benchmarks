@@ -1,4 +1,4 @@
-# Makefile to handle compilation of MLton programs to executables
+# Makefile to handle compilation of Manticore programs to executables
 # and run the benchmarks via hyperfine.  Yes, this makefile is somewhat
 # horrific, but it serves my purposes.  I have nevertheless attempted
 # to make it as clean and straightforward as possible.  In particular,
@@ -7,8 +7,8 @@
 # exception of the `all` command, which is deliberately placed first so that
 # it is the default command for `make`.
 
-# For MLton, the .sml files are converted to executables using the
-# `mlton` command that runs the MLton compiler.
+# For Manticore, the .pml files are converted to executables using the
+# `pmlc` command that runs the Manticore compiler.
 
 # Relevant directories
 mlbs_dir ::= ./mlbs
@@ -31,10 +31,10 @@ memory_names ::= $(foreach name, $(names), memory_$(name))
 
 # The following is done on advice of the GNU Make manual's Makefile
 # Conventions chapter, specifically ch 16.3 (as of 28 April 2020)
-MLTON = mlton
+PMLC = pmlc
 
-define mlton_compile =
-$(MLTON) -prefer-abs-paths true -codegen native -show-def-use $(mlbs_dir)/$(notdir $@.du) -output ./$@ ./$<
+define pmlc_compile =
+$(PMLC) -O2 -native -o ./$@ ./$<
 endef
 
 all: $(names)
@@ -48,11 +48,11 @@ all: $(names)
 $(names) : % : $(bin_dir)/%
 	make $(bin_dir)/$@
 
-$(exe_names) : $(bin_dir)/% : $(mlbs_dir)/%.mlb $(src_dir)/%.sml | $(bin_dir)
-	$(mlton_compile)
+$(exe_names) : $(bin_dir)/% : $(mlbs_dir)/%.mlb $(src_dir)/%.pml | $(bin_dir)
+	$(pmlc_compile)
 
-#$(names) : % : $(src_dir)/%.sml $(mlbs_dir)/%.mlb
-#	$(mlton_compile)
+#$(names) : % : $(src_dir)/%.pml $(mlbs_dir)/%.mlb
+#	$(pmlc_compile)
 
 ##################################################
 

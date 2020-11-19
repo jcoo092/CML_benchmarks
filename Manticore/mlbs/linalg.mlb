@@ -1,9 +1,5 @@
-local
-  $(SML_LIB)/basis/basis.mlb
-  $(SML_LIB)/basis/mlton.mlb
-  $(SML_LIB)/cml/cml.mlb
-  $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
-  ../../../tensor/tensor.mlb
-in
-  ../src/linalg.sml
-end
+/usr/pmlc/src/lib/basis/implicit-thread/implicit-thread.mlb
+/usr/pmlc/src/lib/basis/scheduler/scheduler.mlb
+/usr/pmlc/src/lib/basis/parray/parray.mlb
+/usr/pmlc/benchmark/benchmarks/common/run-par.mlb
+../src/linalg.pml
