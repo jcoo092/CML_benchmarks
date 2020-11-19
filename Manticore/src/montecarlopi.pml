@@ -1,13 +1,29 @@
+(* The two lines below, and the spawnOn function, are taken directly from 
+https://github.com/ManticoreProject/benchmark/blob/master/benchmarks/programs/cml-parallelpp/parallel-pp2.pml#L20
+as at commit ce3dd22 - many thanks to Kavon Farvadin for pointing me to them *)
+(* val vps = VProcExtras.vprocs() *)
+val vps = Array.fromList (VProcExtras.vprocs())
+(* val nVps = List.length vps *)
+val nVps = Array.length vps
+
+(* fun spawnOn (f, id) = VProcExtras.spawnOn f (List.nth(vps, id)) *)
+
+fun spawnOn (f, id) = VProcExtras.spawnOn f (Array.sub(vps, id))
+
+fun spawnOnI (i, f) = let
+	val imod = Int.rem(i, nVps)
+in
+	spawnOn (f, imod)
+end
+
 fun distribute_extras total base = let
     val q = Int.quot(total, base)
     val r = Int.rem(total, base)
-    (* val ret_arr = Array.tabulate (base, fn _ => q)     *)
 in
-    (* Array.modifyi (fn (i, v) => if i < r then v + 1 else v ) ret_arr *)
     Array.tabulate (base, fn i => if i < r then q + 1 else q)
 end
 
-fun montecarlopi iterations return_chan = let
+fun montecarlopi return_chan iterations () = let
     fun helper accumulator 0 = accumulator
       | helper accumulator iteration = let
           val x = Rand.randDouble(0.0, 1.0)
@@ -20,8 +36,10 @@ fun montecarlopi iterations return_chan = let
           else
               helper accumulator next_iter
       end
+	val ret_val = helper 0 iterations
 in
-    PrimChan.send (return_chan, (helper 0 iterations))
+	(* Print.print ("ret_val is: " ^ (Int.toString ret_val) ^ "\n"); *)
+    PrimChan.send (return_chan, ret_val)
 end
 
 fun experiment (iterations : int) (num_threads : int) : unit = let
@@ -35,9 +53,12 @@ fun experiment (iterations : int) (num_threads : int) : unit = let
       end
 
     val iters_per_thread_arr = distribute_extras iterations num_threads
-    val _ = Array.map (fn i => spawn
+    (* val _ = Array.map (fn i => spawn
                                     (montecarlopi i return_chan))
-                       iters_per_thread_arr
+                       iters_per_thread_arr *)
+   val mcp = montecarlopi return_chan
+   val _ = Array.appi (fn (i,n) => spawnOnI (i, mcp n))
+			iters_per_thread_arr
 in
     Print.print((Double.toString (4.0 *
                                  ((Double.fromInt (collect_from_chan num_threads 0)) /
