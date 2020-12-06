@@ -12,7 +12,7 @@ in
 end
 
 fun receiver recvEvents = let
-    val msg = Event.select recvEvents
+    val msg = PrimEvent.sync (PrimEvent.choose recvEvents)
 in
     (* TextIO.print("Received message " ^ (Int.toString(msg)) ^ ".\n"); *)
     Print.print("Received message " ^ (Int.toString(msg)) ^ ".\n");
@@ -23,7 +23,7 @@ fun experiment iterations num_chans = let
     (* val _ = MLton.Random.srand (valOf (MLton.Random.useed ())) *)
     val cv = CVar.new ()
     val chans = List.tabulate(num_chans, fn _ => PrimChan.new ())
-    val recvEvents = List.map (fn ch => PrimEvent.recvEvt ch) chans
+    val recvEvents = List.map (fn ch => Chan.recvPrimEvt ch) chans
     val _ = spawn (fn () => receiver recvEvents)
     val sendThrd = spawn (fn () => sender iterations
 									  (Array.fromList chans) num_chans

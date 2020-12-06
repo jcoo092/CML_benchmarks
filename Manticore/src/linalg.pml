@@ -8,14 +8,15 @@ val max_val = 256
 fun add (x, y) = x + y
 
 fun dims2 (arr2 : 'a parray parray) = let
-	val firstIx = PArray.sub (arr2, 0)
+	(* val firstIx = PArray.sub (arr2, 0) *)
+	val firstIx = arr2 ! 0
 in
 	(PArray.length arr2, PArray.length firstIx)
 end
 
 (* Used to avoid the whole tensor just becoming a bunch of zeros *)
 fun rem_or_rand numerator = let
-    val rem = Int.mod(numerator, max_val)
+    val rem = Int.rem(numerator, max_val)
 in
     if rem = 0 then
         Rand.inRangeInt (min_val, max_val)
@@ -23,18 +24,19 @@ in
         rem
 end
 
-fun rem_all_by_max max t = PArray.map rem_or_rand t
+fun rem_all_by_max max t = [| PArray.map rem_or_rand u | u in t |]
 val ralbm = rem_all_by_max max_val
 
-(* fun randomTensor (width, height) = [| [| Rand.inRangeInt (min_val, max_val) | i in [| 0 to width |] |] | j in [| 0 to height |] |] *)
-fun randomTensor (width, height) = PArray.tab2D ((0, 1, width), (0, 1, height), fn (_,_) => Rand.inRangeInt (min_val, max_val))
+(* fun randomMatrix (width, height) = [| [| Rand.inRangeInt (min_val, max_val) | i in [| 0 to width |] |] | j in [| 0 to height |] |] *)
+fun randomMatrix (width, height) = PArray.tab2D ((0, 1, width), (0, 1, height), fn (_,_) => Rand.inRangeInt (min_val, max_val))
 
-fun addTensors (t1, t2) = let
+fun elementwiseAddMatrices (t1, t2) = let
 	val (t1m, t1n) = dims2 t1
 	val (t2m, t2n) = dims2 t2
 in
 	if t1m = t2m andalso t1n = t2n then
-		[| i + j | i in t1, j in t2 |]
+		(* [| [| i + j | i in t1 |] | j in t2 |] *)
+		[| [| k + l | k in i, l in j |] | i in t1, j in t2 |]
 	else
 		raise Fail("Vector sizes do not match for addition")
 end
@@ -48,27 +50,41 @@ in
 		[| mvm (n, mi) | mi in m |]
 end
 
-(* fun sliceOutNewTensor (lo, up, t) = let (* lo and up are the start and end indices, while t is the tensor *)
-	val (lm, ln) = lo
-	val (um, un) = up
+fun sliceOutNewMatrix (lo, up, t) = let (* lo and up are the start and end indices, while t is the tensor *)
+(* lo should be inclusive, and up exclusive *)
+	val lm::ln::_ = lo
+	val um::un::_ = up
+	(* val mdiff = um - lm
+	val ndiff = un - ln *)
+	val (mdiff, ndiff) = (| um - lm, un - ln |)
+	val (mrange, nrange) = (| [| lm to um |] , [| ln to un |] |)
 in
 	if lm <= um andalso ln <= un then
-		[| PArray.sub |]
+		[| [| (t ! i) ! j | i in mrange |] | j in nrange |]
 	else
-		raise Fail("and index of lo was greater than one for up")
-end *)
+		raise Fail("an index of lo was greater than one for up")
+end
+
+fun transpose (m : 'a parray parray) = let
+	val w = PArray.length (m ! 0)
+	val h = PArray.length m
+	val wRange = [| 0 to (w-1) |]
+	val hRange = [| 0 to (h-1) |]
+in
+	[| [| (m ! i) ! j | i in hRange |] | j in wRange |]
+end
 
 (********** Vector-specific bits **********)
 fun vector iterations size = let
-    val initvector1 = randomTensor (size, 1)
-    val initvector2 = randomTensor (size, 1)
+    val initvector1 = randomMatrix (size, 1)
+    val initvector2 = randomMatrix (size, 1)
     fun process_vectors 0 _ _ = ()
       | process_vectors iteration v1 v2 = let
           val next_iter = iteration - 1
-          val pluses = ralbm (addTensors (v1, v2))
-          val times = ralbm (TensorSlice.sliceOutNewTensor'(
+          val pluses = ralbm (elementwiseAddMatrices (v1, v2))
+          val times = ralbm (sliceOutNewMatrix(
                                            [0,0], [size,1],
-                                           (denseMatrixMultiply(v1, (ITensor.transpose v2)))))
+                                           (denseMatrixMultiply(v1, (transpose v2)))))
       in
           (* tfiwn2 v1 "v1";
           tfiwn2 v2 "v2";
@@ -83,12 +99,12 @@ end
 
 (********** Matrix-specific bits **********)
 fun matrixops iterations size = let
-    val initmatrix1 = randomTensor (size, size)
-    val initmatrix2 = randomTensor (size, size)
+    val initmatrix1 = randomMatrix (size, size)
+    val initmatrix2 = randomMatrix (size, size)
     fun process_matrices 0 _ _ = ()
       | process_matrices iteration m1 m2 = let
           val next_iter = iteration - 1
-          val pluses = ralbm (addTensors (m1, m2))
+          val pluses = ralbm (elementwiseAddMatrices (m1, m2))
           val times = ralbm (denseMatrixMultiply(m1, m2))
       in
           (* tfiwn2 m1 "m1";
@@ -103,9 +119,9 @@ end
 
 (********** Mixed-specific bits **********)
 fun mixed iterations size = let
-    val initcolvec = randomTensor (size, 1)
-    val initrowvec = randomTensor (1, size)
-    val initmatrix1 = randomTensor (size, size)
+    val initcolvec = randomMatrix (size, 1)
+    val initrowvec = randomMatrix (1, size)
+    val initmatrix1 = randomMatrix (size, size)
     fun process_mixed 0 _ _ _ = ()
       | process_mixed iteration colvec rowvec m = let
           val next_iter = iteration - 1
