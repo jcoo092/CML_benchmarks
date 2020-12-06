@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Concurrent",
+        "repositoryURL": "https://github.com/typelift/Concurrent.git",
+        "state": {
+          "branch": null,
+          "revision": "6095c2ce07b8f065abc10710b214808fec0db2b2",
+          "version": null
+        }
+      },
+      {
+        "package": "SwiftCheck",
+        "repositoryURL": "https://github.com/typelift/SwiftCheck.git",
+        "state": {
+          "branch": "master",
+          "revision": "abeeb225cb0268561d67485a8c767d71813d9fe2",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
