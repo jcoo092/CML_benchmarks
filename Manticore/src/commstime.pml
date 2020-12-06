@@ -42,19 +42,19 @@ structure Commstime = struct
 		val b = PrimChan.new ()
 		val c = PrimChan.new ()
 		val d = PrimChan.new ()
-		val stopCV = CVar.new ()
+		val stopCv = CVar.new ()
 	in
-		spawn (consumer stopCV d iterations);
+		spawn (consumer stopCv d iterations);
 		spawn (delta b c d);
 		spawn (successor c a);
 		spawn (prefix 0 a b);
-		stopCV
+		stopCv
 	end
 
 	fun experiment iterations = let
-		val stopCV = commstime iterations
+		val stopCv = commstime iterations
 	in
-		CVar.wait stopCV;
+		CVar.wait stopCv;
 		Print.print("Communications Time completed succesfully.\n")
 	end
 	
